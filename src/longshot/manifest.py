@@ -96,7 +96,12 @@ class RunManifest:
         self.stage = stage
         self.cfg = cfg
         self.run_id = make_run_id(stage, str(cfg.get("run_name", "run")))
-        self.run_dir = Path(results_root) / self.run_id
+        # Runs are written under _inprogress/ (gitignored) and moved into results_root only
+        # when finished, so a half-written run never looks like a result.
+        self.final_dir = Path(results_root) / self.run_id
+        self.run_dir = Path(results_root) / "_inprogress" / self.run_id
+        if self.final_dir.exists():
+            raise FileExistsError(self.final_dir)
         self.run_dir.mkdir(parents=True, exist_ok=False)
         self.data: dict[str, Any] = {
             "run_id": self.run_id,
@@ -141,4 +146,6 @@ class RunManifest:
         with out.open("w", encoding="utf-8") as fh:
             json.dump(self.data, fh, indent=2, sort_keys=True, default=str)
             fh.write("\n")
-        return out
+        self.run_dir.rename(self.final_dir)
+        self.run_dir = self.final_dir
+        return self.final_dir / "manifest.json"

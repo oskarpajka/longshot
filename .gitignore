@@ -227,3 +227,4 @@ __marimo__/
 results/runs/*/bulk/
 results/scratch/
 !results/runs/.gitkeep
+results/runs/_inprogress/

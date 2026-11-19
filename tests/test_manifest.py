@@ -26,3 +26,5 @@ def test_manifest_written_with_required_fields(tmp_path):
     assert data["outputs"]["table.csv"]["bytes"] == 8
     assert data["status"] == "ok"
     assert "commit" in data["git"]
+    assert path.parent.parent == tmp_path  # moved out of _inprogress on finish
+    assert not any((tmp_path / "_inprogress").iterdir())
