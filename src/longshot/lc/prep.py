@@ -102,6 +102,7 @@ def prepare(
     bkg_z_max: float | None = None,
     bkg_pad_d: float = 0.0,
     bkg_two_sided: bool = False,
+    extra_keep: np.ndarray | None = None,
 ) -> Prepared:
     """Mask, normalize per orbit, clip upward outliers (flares), detrend with biweight.
 
@@ -112,6 +113,8 @@ def prepare(
     raw = lc.flux if flux is None else flux
     m = good_mask(lc, quality_bitmask) & np.isfinite(raw) & (raw > 0)
     m &= scattered_light_mask(lc.time, lc.bkg, lc.orbit, bkg_z_max, bkg_pad_d, bkg_two_sided)
+    if extra_keep is not None:  # e.g. common-mode bad times (D022)
+        m &= extra_keep
     t, f, orb = lc.time[m], raw[m].astype(float), lc.orbit[m]
     order = np.argsort(t)
     t, f, orb = t[order], f[order], orb[order]

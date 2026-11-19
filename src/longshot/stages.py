@@ -131,6 +131,8 @@ def select_stars(cfg: dict[str, Any], man: RunManifest):
         chosen |= {int(t) for t in _target_pool(sel["all_targets_run"], av, man)}
     if "sample" in sel:
         chosen |= _draw_sample(sel["sample"], av, man)
+    for smp in sel.get("samples", []):
+        chosen |= _draw_sample(smp, av, man)
     chosen |= {int(t) for t in sel.get("include_tics", [])}
     if "include_targets_file" in sel:
         chosen |= {int(t["tic"]) for t in load_targets_file(sel["include_targets_file"])}
@@ -293,6 +295,78 @@ def search_stage(cfg: dict[str, Any], man: RunManifest) -> str:
     man.set_count("errors", len(errors))
     man.set_count("stars_from_checkpoint", n_resumed)
     man.set_count("missing_lightcurves", sum(1 for r in infos if r.get("missing")))
+    return "ok" if len(errors) <= 0.01 * max(1, len(stars)) else "too_many_errors"
+
+
+def _commonmode_worker(args):
+    tic, sectors, settings = args
+    from longshot.data import qlp
+    from longshot.lc.commonmode import star_bins
+    from longshot.lc.prep import prepare
+    from longshot.pipeline import SearchSettings
+
+    s = SearchSettings.from_config(settings)
+    out = []
+    try:
+        for sec in sectors:
+            path = qlp.fetch_lightcurve(tic, sec)
+            if path is None:
+                continue
+            lc = qlp.read_lightcurve(path)
+            w = s.window_list[0]
+            prep = prepare(lc, [w], s.quality_bitmask, s.gap_d, s.edge_trim_d,
+                           s.flare_clip_sigma, bkg_z_max=s.bkg_z_max, bkg_pad_d=s.bkg_pad_d,
+                           bkg_two_sided=s.bkg_two_sided)
+            b, dev = star_bins(prep.time, prep.detrended[w] - 1.0, lc.cadence_s)
+            if len(b):
+                out.append((lc.sector, lc.camera, lc.ccd, tic, b, dev))
+        return out, None
+    except Exception as exc:  # noqa: BLE001  (recorded per star)
+        return out, repr(exc)
+
+
+@stage("commonmode")
+def commonmode_stage(cfg: dict[str, Any], man: RunManifest) -> str:
+    """Build the D022 common-mode bad-times table from a reference star set."""
+    from concurrent.futures import ProcessPoolExecutor
+
+    import pandas as pd
+
+    from longshot.lc import commonmode as C
+
+    settings = load_search_settings(cfg, man)
+    if settings.get("commonmode_run") is not None:
+        raise ValueError("reference prep must not itself use a common-mode table")
+    stars = select_stars(cfg, man)
+    man.set_count("stars", len(stars))
+    man.set_count("star_sectors", sum(len(v) for v in stars.values()))
+    jobs = [(t, v, settings) for t, v in sorted(stars.items())]
+    parts, errors = [], []
+    with ProcessPoolExecutor(max_workers=int(cfg.get("workers", 4))) as ex:
+        for i, (res, err) in enumerate(ex.map(_commonmode_worker, jobs, chunksize=4)):
+            for sec, cam, ccd, tic, b, dev in res:
+                parts.append(pd.DataFrame({"sector": sec, "camera": cam, "ccd": ccd,
+                                           "tic": tic, "bin": b, "dev": dev}))
+            if err:
+                errors.append({"tic": jobs[i][0], "error": err})
+            if (i + 1) % 500 == 0:
+                print(f"  {i + 1}/{len(jobs)} stars", flush=True)
+    rows = pd.concat(parts, ignore_index=True)
+    bad = C.bad_bins(rows)
+    write_table(man, bad.to_dict("records"), "bad_bins.csv.gz",
+                columns=["sector", "camera", "ccd", "bin"])
+    write_table(man, errors, "errors.csv.gz", columns=["tic", "error"])
+    # flagged fraction of reference data, per sector, for the record
+    cam_bad = bad[bad["ccd"] == -1]
+    key = rows.merge(cam_bad, on=["sector", "camera", "bin"], how="left", indicator=True)
+    frac = float((key["_merge"] == "both").mean())
+    man.set_count("reference_bins", len(rows))
+    man.set_count("bad_bins", len(bad))
+    man.set_count("reference_fraction_in_camera_bad_bins", round(frac, 5))
+    man.set_count("errors", len(errors))
+    man.add_data_version("rule", {"bin_h": C.BIN_D * 24, "z": C.Z_DEV,
+                                  "min_dev_stars": C.MIN_DEV_STARS,
+                                  "min_dev_frac": C.MIN_DEV_FRAC, "widen_bins": C.WIDEN_BINS})
     return "ok" if len(errors) <= 0.01 * max(1, len(stars)) else "too_many_errors"
 
 

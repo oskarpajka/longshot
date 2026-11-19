@@ -14,6 +14,7 @@ from typing import Any
 import numpy as np
 
 from longshot.data import qlp
+from longshot.lc import commonmode
 from longshot.lc.prep import prepare, robust_std
 from longshot.search.centroid import centroid_stats
 from longshot.search.single import duration_grid_h, search
@@ -36,6 +37,7 @@ class SearchSettings:
     bkg_two_sided: bool = False  # D021
     baseline_min_d: float | None = None  # D021: out-of-transit data needed on both sides
     baseline_coverage: float = 0.5
+    commonmode_table: str | None = None  # D022 bad-times table (path)
     centroid_snr_min: float | None = None  # centroid stats for events at or above this (D019)
 
     @classmethod
@@ -59,6 +61,8 @@ class SearchSettings:
             baseline_min_d=(None if c.get("baseline_min_d") is None
                             else float(c["baseline_min_d"])),
             baseline_coverage=float(c.get("baseline_coverage", 0.5)),
+            commonmode_table=(None if c.get("commonmode_run") is None else
+                              f"results/runs/{c['commonmode_run']}/bad_bins.csv.gz"),
             centroid_snr_min=(None if c.get("centroid_snr_min") is None
                               else float(c["centroid_snr_min"])),
         )
@@ -85,6 +89,12 @@ def intervals(time: np.ndarray, cadence_d: float) -> list[tuple[float, float]]:
     return [(float(a), float(b)) for a, b in zip(starts, ends, strict=True)]
 
 
+def commonmode_keep(lc: qlp.LightCurve, s: SearchSettings) -> np.ndarray | None:
+    if s.commonmode_table is None:
+        return None
+    return commonmode.keep_mask(lc.time, lc.sector, lc.camera, lc.ccd, s.commonmode_table)
+
+
 def _centroids_at(lc: qlp.LightCurve, times: np.ndarray):
     """SAP_X, SAP_Y at the prepared (kept) cadences, or None if the file has no centroids."""
     if lc.cen_x is None or lc.cen_y is None or not np.isfinite(lc.cen_x).any():
@@ -105,7 +115,7 @@ def search_lightcurve(
     prep = prepare(
         lc, s.window_list, s.quality_bitmask, s.gap_d, s.edge_trim_d, s.flare_clip_sigma,
         flux=flux_override, invert=invert, bkg_z_max=s.bkg_z_max, bkg_pad_d=s.bkg_pad_d,
-        bkg_two_sided=s.bkg_two_sided,
+        bkg_two_sided=s.bkg_two_sided, extra_keep=commonmode_keep(lc, s),
     )
     cad_d = lc.cadence_s / 86400.0
     info = {

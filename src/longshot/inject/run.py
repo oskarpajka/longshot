@@ -14,7 +14,7 @@ import numpy as np
 from longshot.data import qlp
 from longshot.inject.model import REARTH, RSUN, a_over_rs, total_duration_d, transit_flux
 from longshot.lc.prep import prepare, robust_std
-from longshot.pipeline import SearchSettings, search_lightcurve
+from longshot.pipeline import SearchSettings, commonmode_keep, search_lightcurve
 
 
 @dataclass
@@ -78,7 +78,7 @@ def run_injection(inj: Injection, s: SearchSettings, seed: int) -> dict:
     # Expected SNR on the uninjected, prepared data (white-noise, good cadences only)
     base = prepare(lc, s.window_list, s.quality_bitmask, s.gap_d, s.edge_trim_d,
                    s.flare_clip_sigma, bkg_z_max=s.bkg_z_max, bkg_pad_d=s.bkg_pad_d,
-                   bkg_two_sided=s.bkg_two_sided)
+                   bkg_two_sided=s.bkg_two_sided, extra_keep=commonmode_keep(lc, s))
     w = s.window_for(min(max(dur * 24, s.durations_h[0]), s.durations_h[-1]))
     resid = base.detrended[w] - 1.0
     ok = np.isfinite(resid)
