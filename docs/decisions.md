@@ -261,3 +261,8 @@ that says why and confirms it was not motivated by search results.
   cadences counted as good data.
 - Effect on the dev sample is recorded below; no further tuning on it. Common-mode
   (same time, many stars) systematics are left to vetting triage (plan section 6).
+- Outcome on the dev sample (489 stars, inverted), fraction of stars with an event at
+  SNR >= 15: no mask 20.9%; D018 mask 5.5%; D018 + D021 4.1% (run 20261119T124311Z). With the
+  D020 asteroid veto, about 2% of dev stars still have a surviving event at SNR >= 16. Four of
+  the 11 strongest survivors are in sector 86 (BTJD 3637-3651), a common-mode systematic.
+  A 1e-3 per-star rate is not reachable yet; see docs/log.md for the next step.
