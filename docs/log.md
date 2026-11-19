@@ -2,6 +2,28 @@
 
 Newest first. Each session ends with: done, found, next, open questions for Oskar.
 
+## 2026-11-19 (session 1, continued): Phase 1 build
+
+Done:
+- PR 1 (Phase 0) merged.
+- Built stages: targets, availability, search (normal/inverted), inject, validate.
+  Modules: QLP access, light curve prep, box matched filter (checked against astropy BLS),
+  duotransit linking with alias pruning, batman injection.
+- Decisions D011-D015 fix every Phase 1 setting and pass criterion before any run.
+- Runs: targets (102,254 M dwarfs; D012 corrects the plan's ~170k) and availability
+  (100,152 stars with QLP data in S1-105, 559,907 star-sectors).
+
+Found:
+- QLP SAP flux in some 30-min sectors (e.g. S26) has large scattered-light swings near orbit
+  edges that produce strong false dips. Expect these in the production search; vetting triage
+  must catch them.
+- Single transits of TOI-2257 b (Tmag 13, depth 0.4%) have expected SNR ~5-6, below any sane
+  threshold: a sensitivity limit, kept as an honest control in the validation set.
+- Search compute is ~0.03 s per sector; downloads dominate.
+
+Next:
+- Run calib-normal, calib-inverted, calib-inject, then validate. Reproducibility check.
+
 ## 2026-11-19 (session 1): Phase 0 plan
 
 Done:
