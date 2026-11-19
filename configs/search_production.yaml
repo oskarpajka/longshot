@@ -1,0 +1,17 @@
+# Phase 2: production search of every M-dwarf target with QLP data, except the calibration
+# draw (false-alarm threshold, injections) and the development draw (D014, D016, D018). Runs on Oskar's PC
+# (docs/home_pc.md). Input runs are pinned by id so the exclusion is exactly reproducible.
+stage: search
+run_name: production-normal
+mode: normal
+search_settings: configs/search_common.yaml
+availability_run: 20261119T102416Z_availability_mdwarf-qlp
+workers: 8
+keep_lightcurves: false      # delete each light curve after it is searched (~450 GB otherwise)
+checkpoint: true             # resumable: rerun the same command after any interruption
+chunk_stars: 500
+stars:
+  all_targets_run: 20261119T102122Z_targets_mdwarf-tic82
+  exclude_samples:             # calibration draw (D014) and development draw (D018)
+    - {n: 2000, seed: 20261119, targets_run: 20261119T102122Z_targets_mdwarf-tic82}
+    - {n: 500, seed: 20261121, targets_run: 20261119T102122Z_targets_mdwarf-tic82}

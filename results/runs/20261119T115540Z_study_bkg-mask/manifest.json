@@ -1,0 +1,98 @@
+{
+  "config": {
+    "dev_run": "20261119T112136Z_search_dev-inverted",
+    "metric_snr": 10.0,
+    "run_name": "bkg-mask",
+    "stage": "study",
+    "variants": [
+      [
+        null,
+        0.0
+      ],
+      [
+        3.0,
+        0.0
+      ],
+      [
+        3.0,
+        0.25
+      ],
+      [
+        3.0,
+        0.5
+      ],
+      [
+        5.0,
+        0.0
+      ],
+      [
+        5.0,
+        0.25
+      ],
+      [
+        5.0,
+        0.5
+      ],
+      [
+        10.0,
+        0.0
+      ],
+      [
+        10.0,
+        0.25
+      ],
+      [
+        10.0,
+        0.5
+      ]
+    ]
+  },
+  "config_hash": "e9557403267ff1ac0fb9e394fb6f506e937940ac7ac9bebed49041695a693adc",
+  "counts": {
+    "chosen_pad_d": 0.25,
+    "chosen_z": 3.0,
+    "stars": 489
+  },
+  "data_versions": {
+    "dev_run": "20261119T112136Z_search_dev-inverted"
+  },
+  "finished_utc": "2026-11-19T12:35:18Z",
+  "git": {
+    "branch": "claude/trusting-dijkstra-3a3zb7",
+    "commit": "f88cb807492788331d47a3e717c72d315c21da43",
+    "dirty": false
+  },
+  "notes": [],
+  "outputs": {
+    "per_sector.csv.gz": {
+      "bytes": 216214,
+      "sha256": "8e78b7325e5384e6ec3283eafb7c6dfa9f5efbe6d86288ef5ce6cf73e1c328cd"
+    },
+    "summary.csv": {
+      "bytes": 1416,
+      "sha256": "87fd6e6e1faac91a30b2ad978dcc59ee07c6f3d76e0955e95e50b8318d3ebdf1"
+    }
+  },
+  "packages": {
+    "astropy": "8.0.3",
+    "astroquery": "0.4.11",
+    "batman-package": "2.5.3",
+    "juliet": null,
+    "lightkurve": "2.6.0",
+    "longshot": "0.1.0",
+    "numpy": "2.5.5",
+    "pandas": "2.3.3",
+    "pytransit": null,
+    "scipy": "1.18.1",
+    "tess-point": null,
+    "transitleastsquares": null,
+    "triceratops": null,
+    "wotan": "2.1.1"
+  },
+  "platform": "Linux-6.18.44-fc-v653-x86_64-with-glibc2.39",
+  "python": "3.12.3",
+  "run_id": "20261119T115540Z_study_bkg-mask",
+  "stage": "study",
+  "started_utc": "2026-11-19T11:55:40Z",
+  "status": "ok"
+}

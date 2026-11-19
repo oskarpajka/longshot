@@ -1,0 +1,13 @@
+# Development sample for the scattered-light fix (D018): inverted flux only, so no real
+# transit can influence the choice. Drawn from targets outside the calibration draw, and
+# excluded from candidate claims like the calibration sample.
+stage: search
+run_name: dev-inverted-d022
+mode: inverted
+search_settings: configs/search_common.yaml
+availability_run: 20261119T102416Z_availability_mdwarf-qlp
+workers: 8
+stars:
+  sample: {n: 500, seed: 20261121, targets_run: 20261119T102122Z_targets_mdwarf-tic82}
+  exclude_samples:
+    - {n: 2000, seed: 20261119, targets_run: 20261119T102122Z_targets_mdwarf-tic82}

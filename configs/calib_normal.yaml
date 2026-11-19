@@ -1,0 +1,10 @@
+# Phase 1: normal-flux search of the calibration sample plus validation targets (D013, D014).
+stage: search
+run_name: calib-normal
+mode: normal
+search_settings: configs/search_common.yaml
+availability_run: latest:mdwarf-qlp
+workers: 8
+stars:
+  sample: {n: 2000, seed: 20261119, targets_run: "latest:mdwarf-tic82"}
+  include_targets_file: configs/validation_targets.yaml

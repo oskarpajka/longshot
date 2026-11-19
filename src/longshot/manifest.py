@@ -19,6 +19,8 @@ from typing import Any
 
 from longshot.config import config_hash
 
+CODE_PATHS = ("src", "configs", "pyproject.toml", "uv.lock", "tests")
+
 TRACKED_PACKAGES = (
     "longshot",
     "numpy",
@@ -59,7 +61,10 @@ def git_state(repo: Path | None = None) -> dict[str, Any]:
 
     try:
         commit = run("rev-parse", "HEAD")
-        dirty = bool(run("status", "--porcelain", "--untracked-files=no"))
+        # Dirty if any tracked change, or any untracked file in code/config paths: results
+        # must come from committed code (untracked source would not be in the commit).
+        dirty = bool(run("status", "--porcelain", "--untracked-files=all", "--",
+                         *CODE_PATHS))
         branch = run("rev-parse", "--abbrev-ref", "HEAD")
     except (subprocess.CalledProcessError, FileNotFoundError):
         return {"commit": None, "dirty": None, "branch": None}
@@ -91,7 +96,12 @@ class RunManifest:
         self.stage = stage
         self.cfg = cfg
         self.run_id = make_run_id(stage, str(cfg.get("run_name", "run")))
-        self.run_dir = Path(results_root) / self.run_id
+        # Runs are written under _inprogress/ (gitignored) and moved into results_root only
+        # when finished, so a half-written run never looks like a result.
+        self.final_dir = Path(results_root) / self.run_id
+        self.run_dir = Path(results_root) / "_inprogress" / self.run_id
+        if self.final_dir.exists():
+            raise FileExistsError(self.final_dir)
         self.run_dir.mkdir(parents=True, exist_ok=False)
         self.data: dict[str, Any] = {
             "run_id": self.run_id,
@@ -136,4 +146,6 @@ class RunManifest:
         with out.open("w", encoding="utf-8") as fh:
             json.dump(self.data, fh, indent=2, sort_keys=True, default=str)
             fh.write("\n")
-        return out
+        self.run_dir.rename(self.final_dir)
+        self.run_dir = self.final_dir
+        return self.final_dir / "manifest.json"

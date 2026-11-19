@@ -223,7 +223,9 @@ __marimo__/
 .streamlit/secrets.toml
 
 # longshot project
-data/
+/data/
 results/runs/*/bulk/
 results/scratch/
 !results/runs/.gitkeep
+results/runs/_inprogress/
+results/runs/*/coverage.jsonl.gz

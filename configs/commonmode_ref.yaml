@@ -1,0 +1,11 @@
+# D022: common-mode bad-times table from the calibration and dev draws (reference set).
+# Uses the search settings without a common-mode table (no recursion).
+stage: commonmode
+run_name: ref-calib-dev
+search_settings: configs/search_common.yaml
+availability_run: 20261119T102416Z_availability_mdwarf-qlp
+workers: 4
+stars:
+  samples:
+    - {n: 2000, seed: 20261119, targets_run: 20261119T102122Z_targets_mdwarf-tic82}
+    - {n: 500, seed: 20261121, targets_run: 20261119T102122Z_targets_mdwarf-tic82}

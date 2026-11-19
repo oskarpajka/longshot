@@ -1,0 +1,14 @@
+# Phase 1: injection-recovery on the calibration sample (D015).
+stage: inject
+run_name: calib-inject
+search_settings: configs/search_common.yaml
+availability_run: latest:mdwarf-qlp
+workers: 4
+stars:
+  sample: {n: 2000, seed: 20261119, targets_run: "latest:mdwarf-tic82"}
+injections:
+  n: 20500
+  seed: 20261120
+  rp_earth: [1.0, 15.0]
+  period_d: [20.0, 500.0]
+  b_max: 0.9

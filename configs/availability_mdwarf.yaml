@@ -1,0 +1,13 @@
+stage: availability
+run_name: mdwarf-qlp
+targets_run: latest:mdwarf-tic82
+sector_min: 1
+sector_max: 110   # sectors without a QLP target list yet are skipped and recorded
+extra_tics:       # validation stars outside the M-dwarf cuts (configs/validation.yaml)
+  - 232608943  # TOI-4600
+  - 209464063  # TOI-5678
+  - 322807371  # NGTS-30
+  - 26547036   # TOI-2010
+  - 309792357  # TOI-199
+  - 172370679  # TOI-1899
+  - 408636441  # TOI-1759

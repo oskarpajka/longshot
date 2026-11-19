@@ -1,0 +1,122 @@
+{
+  "config": {
+    "availability_run": "20261119T102416Z_availability_mdwarf-qlp",
+    "mode": "inverted",
+    "run_name": "dev-inverted-d021",
+    "search_settings": "configs/search_common.yaml",
+    "stage": "search",
+    "stars": {
+      "exclude_samples": [
+        {
+          "n": 2000,
+          "seed": 20261119,
+          "targets_run": "20261119T102122Z_targets_mdwarf-tic82"
+        }
+      ],
+      "sample": {
+        "n": 500,
+        "seed": 20261121,
+        "targets_run": "20261119T102122Z_targets_mdwarf-tic82"
+      }
+    },
+    "workers": 8
+  },
+  "config_hash": "1dca840cdcbeb3309ad3bd2d00b941f4dfb2d4847d057e5fa7d3ae2d9e8bfa18",
+  "counts": {
+    "errors": 0,
+    "events": 1041,
+    "missing_lightcurves": 0,
+    "star_sectors": 2785,
+    "stars": 489,
+    "stars_excluded_sample": 11,
+    "stars_from_checkpoint": 0
+  },
+  "data_versions": {
+    "availability_run": "20261119T102416Z_availability_mdwarf-qlp",
+    "targets_run": "20261119T102122Z_targets_mdwarf-tic82"
+  },
+  "finished_utc": "2026-11-19T12:48:41Z",
+  "git": {
+    "branch": "claude/trusting-dijkstra-3a3zb7",
+    "commit": "16553f956ffba6dfa955582ef540a2d56e2c0eff",
+    "dirty": false
+  },
+  "notes": [],
+  "outputs": {
+    "coverage.jsonl.gz": {
+      "bytes": 3934641,
+      "sha256": "1e6027a1c0595ce91094f647cdf2425418b5a85f12bb7ba124373e545d80e3f3"
+    },
+    "errors.csv.gz": {
+      "bytes": 47,
+      "sha256": "5de3bf9ba43e92dbb9768c45ee4755db65d52dde7fd678a80a96bc633311bb1b"
+    },
+    "events.csv.gz": {
+      "bytes": 67670,
+      "sha256": "319d147fd69ae6c7956de4a4902a60c2e16de8c06c69732733c92131e72e6809"
+    },
+    "sectors.csv.gz": {
+      "bytes": 53213,
+      "sha256": "252b9f439e3dae60f7c97fce9f07c66ad2a0dcbb8358882d4babbfeb7ba1576f"
+    },
+    "stars.csv.gz": {
+      "bytes": 5213,
+      "sha256": "4d38750a2992d3736923627e0c5f538b5ee134884970d3976138841db286a9c0"
+    }
+  },
+  "packages": {
+    "astropy": "8.0.3",
+    "astroquery": "0.4.11",
+    "batman-package": "2.5.3",
+    "juliet": null,
+    "lightkurve": "2.6.0",
+    "longshot": "0.1.0",
+    "numpy": "2.5.5",
+    "pandas": "2.3.3",
+    "pytransit": null,
+    "scipy": "1.18.1",
+    "tess-point": null,
+    "transitleastsquares": null,
+    "triceratops": null,
+    "wotan": "2.1.1"
+  },
+  "platform": "Linux-6.18.44-fc-v653-x86_64-with-glibc2.39",
+  "python": "3.12.3",
+  "resolved_search_settings": {
+    "path": "configs/search_common.yaml",
+    "settings": {
+      "baseline_coverage": 0.5,
+      "baseline_min_d": 0.25,
+      "bkg_pad_d": 0.25,
+      "bkg_two_sided": true,
+      "bkg_z_max": 3.0,
+      "durations_h": {
+        "max": 12.0,
+        "min": 0.5,
+        "n": 14
+      },
+      "edge_trim_d": 0.1,
+      "flare_clip_sigma": 5.0,
+      "gap_d": 0.5,
+      "max_events_per_sector": 10,
+      "min_coverage": 0.5,
+      "min_points": 3,
+      "quality_bitmask": null,
+      "report_snr": 5.0,
+      "windows": [
+        {
+          "max_duration_h": 5.0,
+          "window_d": 0.75
+        },
+        {
+          "max_duration_h": 12.0,
+          "window_d": 1.5
+        }
+      ]
+    }
+  },
+  "run_id": "20261119T124311Z_search_dev-inverted-d021",
+  "stage": "search",
+  "started_utc": "2026-11-19T12:43:11Z",
+  "status": "ok"
+}

@@ -1,0 +1,15 @@
+# D013: Phase 1 validation set. TIC ids from the NASA Exoplanet Archive (pscomppars).
+targets:
+  - {name: "LHS 1140 b", tic: 92226327}
+  - {name: "TOI-2257 b", tic: 198485881}
+  - {name: "TOI-1231 b", tic: 447061717}
+  - {name: "TOI-904 c", tic: 261257684}
+  - {name: "TOI-700 d", tic: 150428135}
+  - {name: "TOI-1899 b", tic: 172370679}
+  - {name: "TOI-1759 b", tic: 408636441}
+  - {name: "TOI-4600 b", tic: 232608943}
+  - {name: "TOI-4600 c", tic: 232608943}
+  - {name: "TOI-5678 b", tic: 209464063}
+  - {name: "NGTS-30 b", tic: 322807371}
+  - {name: "TOI-2010 b", tic: 26547036}
+  - {name: "TOI-199 b", tic: 309792357}

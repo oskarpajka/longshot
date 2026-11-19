@@ -1,0 +1,20 @@
+# Search settings shared by validation, false-alarm, injection and production runs.
+# Changing any value needs a decision entry (docs/decisions.md).
+quality_bitmask: null        # null = drop any cadence with a nonzero QLP quality flag
+gap_d: 0.5                   # gaps longer than this split segments (detrending, edge trim)
+edge_trim_d: 0.1             # drop first/last 0.1 d of each segment (ramps)
+flare_clip_sigma: 5.0        # drop upward outliers above 5 robust sigma after detrending
+bkg_z_max: 3.0               # scattered-light mask: SAP_BKG > 3 robust sigma above orbit median (D018)
+bkg_pad_d: 0.25              # ... widened by 0.25 d on each side (D018 study 20261119T115540Z)
+bkg_two_sided: true          # mask |z| > bkg_z_max, background dips too (D021)
+baseline_min_d: 0.25         # need max(duration, 0.25 d) of data before AND after a box (D021)
+baseline_coverage: 0.5       # ... with >= 50% of the expected cadences on each side
+durations_h: {min: 0.5, max: 12.0, n: 14}
+windows:                     # biweight window used for each duration range (about 3x duration)
+  - {max_duration_h: 5.0, window_d: 0.75}
+  - {max_duration_h: 12.0, window_d: 1.5}
+report_snr: 5.0              # events below this are not recorded at all
+max_events_per_sector: 10
+min_points: 3
+min_coverage: 0.5
+commonmode_run: 20261119T125323Z_commonmode_ref-calib-dev   # D022 bad-times table
