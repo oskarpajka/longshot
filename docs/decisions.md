@@ -285,3 +285,15 @@ that says why and confirms it was not motivated by search results.
 - A real transit on one star cannot flag itself (needs >= 3 stars). Injections are masked the
   same way, so completeness includes the loss. The flagged time fraction is reported.
 - Then: dev check (report only), and Phase 1 attempt 2 with every setting frozen.
+- Outcome (table run 20261119T125323Z: 13,822 reference star-sectors, 0.15% of reference data
+  in camera-level bad bins; dev run 20261119T130736Z): stars with an inverted event at
+  SNR >= 15 fall from 4.1% (D021) to 3.3%. With the asteroid veto, about 2% of dev stars still
+  have a surviving event at SNR >= 14.8, nearly all in 200 s sectors. Diminishing returns.
+
+## D023 2026-11-19: Settings frozen for Phase 1 attempt 2
+- configs/search_common.yaml as of this commit (D011, D018, D021, D022) and the D020 asteroid
+  veto in validate. No further change before attempt 2 is scored. Pass criteria unchanged.
+- Expectation written before the run: from the dev sample, criterion 4 forces a threshold well
+  above 15, so criterion 3 (80% at expected SNR >= 10) will probably fail. If so, the measured
+  threshold vs completeness trade-off goes to Oskar; any change to a pass criterion is his
+  decision and gets its own entry.

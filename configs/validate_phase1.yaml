@@ -5,6 +5,7 @@ search_run: latest:calib-normal
 inverted_run: latest:calib-inverted
 inject_run: latest:calib-inject
 targets_file: configs/validation_targets.yaml
+targets_run: 20261119T102122Z_targets_mdwarf-tic82   # positions for the asteroid veto
 criteria:
   max_false_alarm_rate: 0.001
   snr_threshold_floor: 7.1
@@ -16,3 +17,4 @@ criteria:
   inj_coverage_min: 0.8
   inj_min_fraction: 0.8
   inj_min_n: 20000
+  asteroid_veto: true          # D020

@@ -334,9 +334,9 @@ def commonmode_stage(cfg: dict[str, Any], man: RunManifest) -> str:
 
     from longshot.lc import commonmode as C
 
-    settings = load_search_settings(cfg, man)
-    if settings.get("commonmode_run") is not None:
-        raise ValueError("reference prep must not itself use a common-mode table")
+    settings = dict(load_search_settings(cfg, man))
+    # The reference prep never uses a common-mode table itself (no recursion).
+    settings.pop("commonmode_run", None)
     stars = select_stars(cfg, man)
     man.set_count("stars", len(stars))
     man.set_count("star_sectors", sum(len(v) for v in stars.values()))
