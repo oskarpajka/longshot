@@ -35,6 +35,45 @@ def far_threshold(
     return thr, curve
 
 
+def far_threshold_with_veto(
+    inverted_events: pd.DataFrame,
+    stars: pd.Series,
+    max_rate: float,
+    floor: float,
+    veto,
+    step: float = 0.1,
+) -> tuple[float, pd.DataFrame]:
+    """Threshold as in far_threshold, counting only events that survive `veto` (D020).
+
+    Events at or above `floor` are checked in order of decreasing SNR, skipping stars that
+    already have a surviving event. The search stops once more stars survive than the rate
+    allows; the threshold is the first grid value above the SNR of that last star. Only the
+    top of the inverted distribution is queried. Returns (threshold, checked-events table).
+    """
+    allowed = int(np.floor(max_rate * len(stars) + 1e-9))
+    ev = inverted_events[inverted_events["tic"].isin(stars) & (inverted_events["snr"] >= floor)]
+    ev = ev.sort_values("snr", ascending=False, kind="mergesort")
+    surviving: dict[int, float] = {}
+    checked = []
+    s_last = None
+    for _, e in ev.iterrows():
+        tic = int(e["tic"])
+        if tic in surviving:
+            continue
+        r = veto(e)
+        checked.append({**e.to_dict(), **r})
+        if not r.get("ast_veto", False):
+            surviving[tic] = float(e["snr"])
+            if len(surviving) > allowed:
+                s_last = float(e["snr"])
+                break
+    if s_last is None:
+        thr = floor
+    else:
+        thr = max(floor, (np.floor(s_last / step + 1e-9) + 1) * step)
+    return float(np.round(thr, 6)), pd.DataFrame(checked)
+
+
 def predicted_transits(
     t0_btjd: float, period: float, coverage: list[tuple[float, float]], dur_d: float,
     min_cov: float,

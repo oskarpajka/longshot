@@ -360,7 +360,8 @@ def fetch_ephemerides(names: list[str]):
     import pandas as pd
 
     cols = ("pl_name,tic_id,pl_orbper,pl_orbpererr1,pl_tranmid,pl_tranmiderr1,pl_trandur,"
-            "pl_trandep,pl_ratror,pl_ratdor,pl_imppar,pl_rade,st_rad,st_mass,st_teff,sy_tmag")
+            "pl_trandep,pl_ratror,pl_ratdor,pl_imppar,pl_rade,st_rad,st_mass,st_teff,sy_tmag,"
+            "ra,dec")
     q = f"select {cols} from pscomppars where pl_name in (" + ",".join(
         "'" + n.replace("'", "''") + "'" for n in names) + ")"
     url = "https://exoplanetarchive.ipac.caltech.edu/TAP/sync?" + urllib.parse.urlencode(
@@ -411,6 +412,41 @@ def validate_stage(cfg: dict[str, Any], man: RunManifest) -> str:
         thr = max(thr, float(crit["snr_threshold_floor"]))
     curve.to_csv(man.run_dir / "far_curve.csv", index=False)
     man.add_output(man.run_dir / "far_curve.csv")
+    far_rate = None
+    use_veto = bool(crit.get("asteroid_veto", False))
+    eph = fetch_ephemerides([t["name"] for t in cfg_targets])
+    if use_veto:
+        # D020: known-asteroid veto, applied to inverted and known-system events alike
+        from longshot.vet.asteroids import asteroid_veto
+
+        tdir = resolve_run(cfg["targets_run"], "targets")
+        man.add_data_version("targets_run", tdir.name)
+        man.add_data_version("asteroid_services", "IMCCE SkyBoT + JPL Horizons (500@-95), "
+                             f"queried {man.data['started_utc']}, cache data/asteroids/")
+        pos = pd.read_csv(tdir / "targets.csv.gz",
+                          usecols=["ID", "ra", "dec", "Tmag"]).set_index("ID")
+        for _, e in eph.dropna(subset=["ra", "dec"]).iterrows():
+            tic_e = int(str(e["tic_id"]).replace("TIC", "").strip())
+            if tic_e not in pos.index:
+                pos.loc[tic_e] = [float(e["ra"]), float(e["dec"]), float(e["sy_tmag"])]
+
+        def veto(ev_row):
+            st = pos.loc[int(ev_row["tic"])]
+            return asteroid_veto(float(ev_row["t0"]), float(ev_row["duration_d"]),
+                                 float(ev_row["depth"]), float(st["ra"]), float(st["dec"]),
+                                 float(st["Tmag"]))
+
+        thr, checked = V.far_threshold_with_veto(
+            inv[inv["tic"].isin(calib_stars)], calib_stars, float(crit["max_false_alarm_rate"]),
+            float(crit.get("snr_threshold_floor", 0.0)), veto)
+        checked.to_csv(man.run_dir / "inverted_veto_checked.csv", index=False)
+        man.add_output(man.run_dir / "inverted_veto_checked.csv")
+        surv = checked[~checked["ast_veto"].astype(bool)] if len(checked) else checked
+        n_fa = int((surv["snr"] >= thr).sum()) if len(surv) else 0
+        far_rate = n_fa / len(calib_stars)
+        man.set_count("inverted_events_checked", len(checked))
+        man.set_count("inverted_events_vetoed",
+                      int(checked["ast_veto"].sum()) if len(checked) else 0)
 
     # 2. Known systems
     ev = _load_run_table(nrun, "events.csv.gz")
@@ -420,7 +456,6 @@ def validate_stage(cfg: dict[str, Any], man: RunManifest) -> str:
         for line in fh:
             r = json.loads(line)
             cov[(r["tic"], r["sector"])] = [tuple(x) for x in r["intervals"]]
-    eph = fetch_ephemerides([t["name"] for t in cfg_targets])
     eph.to_csv(man.run_dir / "ephemerides_nea.csv", index=False)
     man.add_output(man.run_dir / "ephemerides_nea.csv")
     man.add_data_version("nasa_exoplanet_archive", f"pscomppars fetched {man.data['started_utc']}")
@@ -453,7 +488,14 @@ def validate_stage(cfg: dict[str, Any], man: RunManifest) -> str:
                 snr_exp = float(np.mean(1 - mod)) / (float(srow["sigma"]) / np.sqrt(n_in))
                 m = V.match_transit(star_ev[star_ev["sector"] == sec], tk, t14, thr)
                 row = {"name": name, "tic": tic, "sector": sec, "t_pred": tk, "coverage": frac,
-                       "t14_h": t14 * 24, "snr_expected": snr_exp, "detected": m is not None}
+                       "t14_h": t14 * 24, "snr_expected": snr_exp}
+                if m is not None and use_veto:
+                    av = veto(m)
+                    row.update(ast_veto=av["ast_veto"], ast_name=av["ast_name"],
+                               ast_sep_arcsec=av["ast_sep_arcsec"])
+                    if av["ast_veto"]:
+                        m = None
+                row["detected"] = m is not None
                 if m is not None:
                     tb = np.linspace(tk - m["duration_d"] / 2, tk + m["duration_d"] / 2, 200)
                     lit_box_depth = float(np.mean(1 - transit_flux(tb, tk, P, k, aors, b)))
@@ -509,7 +551,8 @@ def validate_stage(cfg: dict[str, Any], man: RunManifest) -> str:
     # 4. Verdict
     n_rec = int(targ.get("recovered", pd.Series(dtype=bool)).fillna(False).sum())
     true_duos = duo[duo["true_pair"]] if len(duo) else duo
-    far_rate = float(curve.loc[curve["snr"].sub(thr).abs().idxmin(), "rate"])
+    if far_rate is None:
+        far_rate = float(curve.loc[curve["snr"].sub(thr).abs().idxmin(), "rate"])
     checks = {
         "c1_known_recovered": {"value": n_rec, "required": int(crit["min_known_recovered"]),
                                "pass": n_rec >= int(crit["min_known_recovered"])},

@@ -41,3 +41,27 @@ def test_injection_completeness():
     })
     r = injection_completeness(inj, snr_thr=8, snr_exp_min=10, coverage_min=0.8)
     assert r["n_selected"] == 3 and r["recovered_selected"] == 2
+
+
+def test_far_threshold_with_veto_skips_vetoed_and_stops_early():
+    import pandas as pd
+
+    from longshot.validate import far_threshold_with_veto
+
+    stars = pd.Series(range(1000))
+    ev = pd.DataFrame({"tic": [1, 1, 2, 3, 4, 5], "snr": [40.0, 9.0, 30.0, 20.0, 12.0, 8.0]})
+    vetoed = {(1, 40.0), (2, 30.0)}
+    calls = []
+
+    def veto(e):
+        calls.append((int(e["tic"]), float(e["snr"])))
+        return {"ast_veto": (int(e["tic"]), float(e["snr"])) in vetoed}
+
+    # rate 1e-3 of 1000 stars allows 1 star; survivors in order: star 3 (20), star 4 (12)
+    thr, checked = far_threshold_with_veto(ev, stars, 1e-3, 7.1, veto)
+    assert thr == 12.1
+    assert calls == [(1, 40.0), (2, 30.0), (3, 20.0), (4, 12.0)]
+    assert checked["ast_veto"].tolist() == [True, True, False, False]
+    # nothing survives above the floor beyond the allowance: threshold is the floor
+    thr2, _ = far_threshold_with_veto(ev[ev["tic"] == 3], stars, 1e-3, 7.1, veto)
+    assert thr2 == 7.1
