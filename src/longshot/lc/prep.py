@@ -63,10 +63,13 @@ def prepare(
     edge_trim_d: float = 0.1,
     flare_clip_sigma: float = 5.0,
     flux: np.ndarray | None = None,
+    invert: bool = False,
 ) -> Prepared:
     """Mask, normalize per orbit, clip upward outliers (flares), detrend with biweight.
 
-    `flux` overrides lc.flux (used by injection tests and inverted-flux false-alarm runs).
+    `flux` overrides lc.flux (used by injection tests).
+    `invert` mirrors the detrended flux about 1 after flare clipping, for false-alarm
+    calibration (D004): real dips become bumps and are not found; noise is unchanged.
     """
     raw = lc.flux if flux is None else flux
     m = good_mask(lc, quality_bitmask) & np.isfinite(raw) & (raw > 0)
@@ -87,7 +90,7 @@ def prepare(
         resid = d - 1.0
         s = robust_std(resid)
         d = np.where(resid > flare_clip_sigma * s, np.nan, d)
-        detr[w] = d
+        detr[w] = 2.0 - d if invert else d
     n_masked = int(len(lc.time) - len(t))
     return Prepared(time=t, flux=f, detrended=detr, sector=lc.sector, cadence_s=lc.cadence_s,
                     n_masked=n_masked)
