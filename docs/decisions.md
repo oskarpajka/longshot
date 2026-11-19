@@ -268,3 +268,20 @@ that says why and confirms it was not motivated by search results.
   A 1e-3 per-star rate is not reachable yet; see docs/log.md for the next step.
 - Note added with D018: the production selection also excludes the 489-star dev draw
   (500 drawn, 11 overlap the calibration draw), so it is 97,656 stars, not 98,145.
+
+## D022 2026-11-19: Common-mode bad-times table (rule fixed before use)
+- Finding: in dev run 20261119T124311Z, sector 86 inverted events of three different stars on
+  camera 2 CCD 3 fall at the same times (BTJD 3637.3, 3640.0-3640.8), and two stars on
+  camera 3 at 3650.3-3650.7. Scattered light hits many stars at once.
+- Reference set: the calibration and dev draws (2489 stars, already excluded from claims).
+  One table is built from them and used identically for calibration, injections and
+  production, so the false-alarm estimate matches production.
+- Rule (lc/commonmode.py): for each reference star-sector, the detrended flux (0.75 d window,
+  all D018/D021 masks) is binned to 1 h on a fixed grid; z = bin mean / robust std of the
+  star's bins. For each (sector, camera) and each (sector, camera, CCD), a bin is bad when
+  >= 3 stars and >= 25% of the stars with data in that bin have |z| > 3. Bad bins are widened
+  by one bin on each side. The search drops cadences in bad bins for stars on that camera (or
+  CCD). Either sign counts, so normal and inverted data get the same table.
+- A real transit on one star cannot flag itself (needs >= 3 stars). Injections are masked the
+  same way, so completeness includes the loss. The flagged time fraction is reported.
+- Then: dev check (report only), and Phase 1 attempt 2 with every setting frozen.
