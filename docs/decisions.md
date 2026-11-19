@@ -215,3 +215,23 @@ that says why and confirms it was not motivated by search results.
   exactly proportional to the flux (detrending, ingress/egress, cadence effects; TOI-873 b at
   SNR 289 scores 3071). centroid_snr_min stays unset (off). The centroid statistics remain
   in the code for possible use in Phase 3 vetting, not as a search veto.
+
+## D020 2026-11-19: Known-asteroid veto with TESS-centred ephemerides (rule fixed before use)
+- Finding: the three bump-shaped inverted events checked under D019 each have a catalogued
+  asteroid of V = 17.1-17.3 passing 11-33 arcsec from the target at the event mid-time, as
+  seen from TESS (JPL Horizons, observer 500@-95). Seen from the geocentre they are 200-240
+  arcsec away: TESS parallax matters, so geocentric SkyBoT positions alone are not enough.
+  A V = 17.2 asteroid next to a Tmag 13 star gives a ~2-3% bump, as observed.
+- Rule (vet/asteroids.py): for an event (t0, duration D, depth d) on a star (RA, Dec, Tmag),
+  1. SkyBoT cone search at t0, geocentric, radius 15 arcmin (covers TESS parallax);
+  2. keep asteroids with V <= Tmag - 2.5 log10(d) + 1.5 (bright enough to cause the depth,
+     with 1.5 mag margin for colour and partial aperture overlap);
+  3. for each, JPL Horizons positions from TESS at t0 - D/2, t0, t0 + D/2; the event is vetoed
+     ("asteroid") if the closest approach to the target on that path is <= 42 arcsec
+     (2 TESS pixels).
+  Applied the same way to inverted calibration events, normal events and validation events.
+  Queries are cached under data/asteroids/ and the cache is listed in the run manifest.
+- Safety check, run before use: 300 random (calibration star, epoch, depth, duration)
+  combinations taken from the injection draw (D015), queried with this exact rule. If more
+  than 1% are vetoed by chance, the veto is dropped (thresholds not tuned). The measured
+  chance rate is reported as a completeness loss.
