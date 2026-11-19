@@ -17,3 +17,4 @@ report_snr: 5.0              # events below this are not recorded at all
 max_events_per_sector: 10
 min_points: 3
 min_coverage: 0.5
+commonmode_run: 20261119T125323Z_commonmode_ref-calib-dev   # D022 bad-times table
