@@ -1,0 +1,109 @@
+{
+  "config": {
+    "availability_run": "latest:mdwarf-qlp",
+    "mode": "inverted",
+    "run_name": "calib-inverted",
+    "search_settings": "configs/search_common.yaml",
+    "stage": "search",
+    "stars": {
+      "include_targets_file": "configs/validation_targets.yaml",
+      "sample": {
+        "n": 2000,
+        "seed": 20261119,
+        "targets_run": "latest:mdwarf-tic82"
+      }
+    },
+    "workers": 8
+  },
+  "config_hash": "0f95f43c4b7ea071ed199897a937109ea6cb97d174c09b989949f509aa0ea180",
+  "counts": {
+    "errors": 0,
+    "events": 11306,
+    "missing_lightcurves": 0,
+    "star_sectors": 11225,
+    "stars": 2012
+  },
+  "data_versions": {
+    "availability_run": "20261119T102416Z_availability_mdwarf-qlp",
+    "targets_run": "20261119T102122Z_targets_mdwarf-tic82"
+  },
+  "finished_utc": "2026-11-19T11:13:14Z",
+  "git": {
+    "branch": "claude/trusting-dijkstra-3a3zb7",
+    "commit": "cd154cbd5ed238149db81a772839e6fbf72aeb39",
+    "dirty": false
+  },
+  "notes": [],
+  "outputs": {
+    "coverage.jsonl.gz": {
+      "bytes": 19226493,
+      "sha256": "3a54bb1a4bbb5a3f6e3f9516992fa1524857c4bfe57bb7473a46602d1aeb91e2"
+    },
+    "errors.csv.gz": {
+      "bytes": 47,
+      "sha256": "5de3bf9ba43e92dbb9768c45ee4755db65d52dde7fd678a80a96bc633311bb1b"
+    },
+    "events.csv.gz": {
+      "bytes": 728347,
+      "sha256": "dd3462d12536eed6ef2feeb2d24d4eb85c94f5dcd36f617ade6f26cb3aded4fc"
+    },
+    "sectors.csv.gz": {
+      "bytes": 197950,
+      "sha256": "1754de647abbcfca3dd1c6616640458fc5a764f75159b63537b5aebfc0989595"
+    },
+    "stars.csv.gz": {
+      "bytes": 18248,
+      "sha256": "35d01455f7496d5c0c8edafc386a3ad349036b4d0c448d0abf4199f7e0fe812c"
+    }
+  },
+  "packages": {
+    "astropy": "8.0.3",
+    "astroquery": "0.4.11",
+    "batman-package": "2.5.3",
+    "juliet": null,
+    "lightkurve": "2.6.0",
+    "longshot": "0.1.0",
+    "numpy": "2.5.5",
+    "pandas": "2.3.3",
+    "pytransit": null,
+    "scipy": "1.18.1",
+    "tess-point": null,
+    "transitleastsquares": null,
+    "triceratops": null,
+    "wotan": "2.1.1"
+  },
+  "platform": "Linux-6.18.44-fc-v653-x86_64-with-glibc2.39",
+  "python": "3.12.3",
+  "resolved_search_settings": {
+    "path": "configs/search_common.yaml",
+    "settings": {
+      "durations_h": {
+        "max": 12.0,
+        "min": 0.5,
+        "n": 14
+      },
+      "edge_trim_d": 0.1,
+      "flare_clip_sigma": 5.0,
+      "gap_d": 0.5,
+      "max_events_per_sector": 10,
+      "min_coverage": 0.5,
+      "min_points": 3,
+      "quality_bitmask": null,
+      "report_snr": 5.0,
+      "windows": [
+        {
+          "max_duration_h": 5.0,
+          "window_d": 0.75
+        },
+        {
+          "max_duration_h": 12.0,
+          "window_d": 1.5
+        }
+      ]
+    }
+  },
+  "run_id": "20261119T105806Z_search_calib-inverted",
+  "stage": "search",
+  "started_utc": "2026-11-19T10:58:06Z",
+  "status": "ok"
+}
