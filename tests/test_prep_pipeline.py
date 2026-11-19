@@ -72,3 +72,13 @@ def test_intervals_merge():
     t = np.r_[np.arange(0, 1, 0.1), np.arange(2, 3, 0.1)]
     iv = intervals(t, 0.1)
     assert len(iv) == 2
+
+
+def test_fully_flagged_sector_returns_empty_not_error():
+    lc = fake_lc()
+    lc.quality[:] = 4096
+    p = prepare(lc, [0.75])
+    assert len(p.time) == 0 and len(p.detrended[0.75]) == 0
+    s = SearchSettings.from_config(SETTINGS)
+    ev, info = search_lightcurve(lc, s)
+    assert ev == [] and info["n_good"] == 0

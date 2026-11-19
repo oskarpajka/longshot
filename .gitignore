@@ -228,3 +228,4 @@ results/runs/*/bulk/
 results/scratch/
 !results/runs/.gitkeep
 results/runs/_inprogress/
+results/runs/*/coverage.jsonl.gz

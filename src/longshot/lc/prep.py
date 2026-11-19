@@ -13,6 +13,8 @@ from wotan import flatten
 
 from longshot.data.qlp import LightCurve
 
+MIN_POINTS_TO_DETREND = 10
+
 
 @dataclass
 class Prepared:
@@ -82,6 +84,11 @@ def prepare(
     keep = trim_segment_edges(t, gap_d, edge_trim_d)
     t, f = t[keep], f[keep]
     detr = {}
+    if len(t) < MIN_POINTS_TO_DETREND:
+        # nothing usable in this sector (e.g. every cadence flagged); return empty arrays
+        empty = np.array([], dtype=float)
+        return Prepared(time=empty, flux=empty, detrended={w: empty for w in windows_d},
+                        sector=lc.sector, cadence_s=lc.cadence_s, n_masked=len(lc.time))
     for w in windows_d:
         trend = flatten(t, f, window_length=w, method="biweight", break_tolerance=gap_d,
                         return_trend=True)[1]
