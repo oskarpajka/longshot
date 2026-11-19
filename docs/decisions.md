@@ -209,3 +209,9 @@ that says why and confirms it was not motivated by search results.
   If more than 2% are vetoed, the veto is dropped entirely (z = 5 is not tuned).
 - Limitation: injections do not move the centroid, so measured completeness does not include
   any veto loss; the safety check bounds it.
+- Outcome (run 20261119T113856Z_study_centroid-veto): 200 confirmed planets around targets,
+  21 transits with SNR >= 7 tested, 5 vetoed (24%), far above 2%. Per the rule above, the
+  veto is DROPPED. The statistic grows with SNR squared when a real centroid track is not
+  exactly proportional to the flux (detrending, ingress/egress, cadence effects; TOI-873 b at
+  SNR 289 scores 3071). centroid_snr_min stays unset (off). The centroid statistics remain
+  in the code for possible use in Phase 3 vetting, not as a search veto.
