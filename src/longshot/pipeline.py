@@ -15,6 +15,7 @@ import numpy as np
 
 from longshot.data import qlp
 from longshot.lc.prep import prepare, robust_std
+from longshot.search.centroid import centroid_stats
 from longshot.search.single import duration_grid_h, search
 
 
@@ -32,6 +33,7 @@ class SearchSettings:
     min_coverage: float
     bkg_z_max: float | None = None  # scattered-light mask (D018); None = off
     bkg_pad_d: float = 0.0
+    centroid_snr_min: float | None = None  # centroid stats for events at or above this (D019)
 
     @classmethod
     def from_config(cls, c: dict[str, Any]) -> SearchSettings:
@@ -50,6 +52,8 @@ class SearchSettings:
             min_coverage=float(c["min_coverage"]),
             bkg_z_max=None if c.get("bkg_z_max") is None else float(c["bkg_z_max"]),
             bkg_pad_d=float(c.get("bkg_pad_d", 0.0)),
+            centroid_snr_min=(None if c.get("centroid_snr_min") is None
+                              else float(c["centroid_snr_min"])),
         )
 
     def window_for(self, duration_h: float) -> float:
@@ -72,6 +76,17 @@ def intervals(time: np.ndarray, cadence_d: float) -> list[tuple[float, float]]:
     starts = np.r_[t[0], t[br + 1]] - cadence_d / 2
     ends = np.r_[t[br], t[-1]] + cadence_d / 2
     return [(float(a), float(b)) for a, b in zip(starts, ends, strict=True)]
+
+
+def _centroids_at(lc: qlp.LightCurve, times: np.ndarray):
+    """SAP_X, SAP_Y at the prepared (kept) cadences, or None if the file has no centroids."""
+    if lc.cen_x is None or lc.cen_y is None or not np.isfinite(lc.cen_x).any():
+        return None
+    ok = np.isfinite(lc.time)
+    order = np.argsort(lc.time[ok])
+    tt = lc.time[ok][order]
+    idx = np.clip(np.searchsorted(tt, times), 0, len(tt) - 1)
+    return lc.cen_x[ok][order][idx], lc.cen_y[ok][order][idx]
 
 
 def search_lightcurve(
@@ -99,9 +114,14 @@ def search_lightcurve(
         report_snr=s.report_snr, max_events=s.max_events, min_points=s.min_points,
         min_coverage=s.min_coverage,
     )
+    cen = _centroids_at(lc, prep.time) if s.centroid_snr_min is not None else None
     rows = []
     for rank, e in enumerate(events):
         r = e.as_dict()
+        if cen is not None and e.snr >= s.centroid_snr_min:
+            w = s.window_for(e.duration_d * 24.0)
+            r.update(centroid_stats(prep.time, cen[0], cen[1], prep.detrended[w] - 1.0, e.t0,
+                                    e.duration_d, w, s.gap_d))
         r.update(tic=lc.tic, sector=lc.sector, camera=lc.camera, ccd=lc.ccd, rank=rank,
                  cadence_s=lc.cadence_s, timing_suspect=lc.timing_suspect)
         rows.append(r)

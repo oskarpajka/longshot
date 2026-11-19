@@ -124,6 +124,8 @@ class LightCurve:
     path: str
     meta: dict = field(default_factory=dict)
     bkg: np.ndarray | None = None  # SAP_BKG, used for the scattered-light mask (D018)
+    cen_x: np.ndarray | None = None  # SAP_X, SAP_Y flux-weighted centroid (D019)
+    cen_y: np.ndarray | None = None
 
     @property
     def timing_suspect(self) -> bool:
@@ -162,4 +164,6 @@ def read_lightcurve(path: Path) -> LightCurve:
             path=str(path),
             meta={k: hd.get(k) for k in ("TESSMAG", "TEFF", "RADIUS", "RA_OBJ", "DEC_OBJ")},
             bkg=_col(d, "SAP_BKG"),
+            cen_x=_col(d, "SAP_X"),
+            cen_y=_col(d, "SAP_Y"),
         )

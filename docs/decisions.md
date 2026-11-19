@@ -187,3 +187,25 @@ that says why and confirms it was not motivated by search results.
   variants within 0.01 (absolute) of the lowest, choose the one that keeps the most data.
 - Then every Phase 1 run (calib-normal, calib-inverted, inject, validate) is redone from
   scratch with the new settings. Pass criteria are unchanged.
+
+## D019 2026-11-19: Centroid-motion veto for moving objects (rule fixed before use)
+- Finding: after scattered light, the remaining strong inverted events in the calibration
+  sample include symmetric 3-5 h flux bumps (inverted into dips). Spot checks of three
+  showed the flux-weighted centroid (SAP_X, SAP_Y) moving at 10-42 sigma during the bump,
+  versus 1.1 and 3.6 sigma during the two QLP transits of LHS 1140 b. These look like
+  asteroids crossing the aperture. They cannot mimic a dip in normal flux, but they set the
+  inverted false-alarm tail and would make the threshold meaningless.
+- Statistic (search/centroid.py): a transit, on target or on a blend, moves the centroid in
+  proportion to the flux change (dx = k df). A crossing object moves it first one way then
+  the other. cen_unexpl_z = robust z of the in-box centroid motion that is not proportional
+  to the flux change, against every other box position of the same duration in the sector.
+- Rule: computed for every event with SNR >= 7.0. An event with cen_unexpl_z > 5 is vetoed
+  ("moving-object") in the same way for normal, inverted, injected and validation events.
+  The false-alarm threshold (D014) is computed on events that survive.
+- Safety check, run before the calibration reruns, with this exact rule: compute
+  cen_unexpl_z at the predicted transit times of confirmed transiting planets (NASA
+  Exoplanet Archive pscomppars) around stars in our target list, excluding the Phase 1
+  validation set, at most 3 transits per planet, for transits with expected box SNR >= 7.
+  If more than 2% are vetoed, the veto is dropped entirely (z = 5 is not tuned).
+- Limitation: injections do not move the centroid, so measured completeness does not include
+  any veto loss; the safety check bounds it.
