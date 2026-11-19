@@ -1,8 +1,8 @@
 # Running the production search on Oskar's PC (Windows)
 
 Status: ready to use once Phase 1 passes and Claude names the commit to run (step 3).
-Why on your PC: the full search downloads about 560,000 light curves (98,145 stars), which
-takes roughly 12 to 24 hours. See D016 in docs/decisions.md.
+Why on your PC: the full search downloads about 550,000 light curves (97,656 stars), which
+takes roughly 12 to 24 hours. See D016 and D018 in docs/decisions.md.
 
 What it needs: about 3 GB RAM, under 5 GB free disk at any time (each light curve is deleted
 after it is searched), a stable internet connection. No GPU.
@@ -57,7 +57,7 @@ after" to Never while the search runs.
 uv run python -m longshot search --config configs/search_production.yaml
 ```
 
-It prints a line every 500 stars, like `  1500/98145 stars (0 from checkpoint)`.
+It prints a line every 500 stars, like `  1500/97656 stars (0 from checkpoint)`.
 
 If it stops for any reason (crash, reboot, internet drop, you close the window), just run the
 same command again in the same folder. It continues from the last finished 500-star chunk.

@@ -52,7 +52,13 @@ Claude does science and engineering. Claude never submits anything to ExoFOP or 
   ssp.imcce.fr, pypi.org.
 
 ## Current state (update every session)
-- Phase: 0 complete (plan approved 2026-11-19). Phase 1 (validation) starting.
-- Target set: M dwarfs, QLP S1-104, TESS-SPOC as independent check (D001, D002).
+- Phase 1 (validation) in progress. Attempt 1 failed criterion 4 (inverted false alarms);
+  fixes D018-D021 are in, the tail is still too long. Next: common-mode flag (D022 proposal in
+  docs/log.md), then rerun all Phase 1 runs.
+- Target set: M dwarfs, QLP S1-105, TESS-SPOC as independent check (D001, D002).
+- Excluded from candidate claims: calibration draw (seed 20261119, 2000 stars) and dev draw
+  (seed 20261121, 500 stars).
+- Production search is ready for Oskar's PC (docs/home_pc.md) but must wait for Phase 1.
 - Waiting on Oskar: send emails in docs/emails/; ExoFOP account after Phase 1; advisor search.
 - Candidates: none. Registry empty.
+- PR oskarpajka/longshot#2 open (Phase 1 work), not merged.

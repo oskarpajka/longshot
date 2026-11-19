@@ -266,3 +266,5 @@ that says why and confirms it was not motivated by search results.
   D020 asteroid veto, about 2% of dev stars still have a surviving event at SNR >= 16. Four of
   the 11 strongest survivors are in sector 86 (BTJD 3637-3651), a common-mode systematic.
   A 1e-3 per-star rate is not reachable yet; see docs/log.md for the next step.
+- Note added with D018: the production selection also excludes the 489-star dev draw
+  (500 drawn, 11 overlap the calibration draw), so it is 97,656 stars, not 98,145.
