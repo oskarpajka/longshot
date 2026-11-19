@@ -82,3 +82,29 @@ def test_fully_flagged_sector_returns_empty_not_error():
     s = SearchSettings.from_config(SETTINGS)
     ev, info = search_lightcurve(lc, s)
     assert ev == [] and info["n_good"] == 0
+
+
+def test_scattered_light_mask_drops_high_background_with_padding():
+    from longshot.lc.prep import scattered_light_mask
+
+    t = np.arange(0, 10, 0.01)
+    rng = np.random.default_rng(3)
+    bkg = 100 + rng.normal(0, 1, t.size)
+    bkg[(t > 4.0) & (t < 4.5)] += 50  # scattered-light bump
+    orbit = np.ones(t.size, int)
+    keep = scattered_light_mask(t, bkg, orbit, z_max=5.0, pad_d=0.2)
+    assert not keep[(t > 3.85) & (t < 4.65)].any()
+    assert keep[(t < 3.7) | (t > 4.8)].mean() > 0.999
+    assert scattered_light_mask(t, bkg, orbit, z_max=None).all()
+    assert scattered_light_mask(t, None, orbit, z_max=5.0).all()
+
+
+def test_prepare_applies_scattered_light_mask():
+    lc = fake_lc(depth=0.0)
+    bkg = np.full(lc.time.size, 50.0) + np.random.default_rng(0).normal(0, 1, lc.time.size)
+    bkg[(lc.time > 1005) & (lc.time < 1006)] += 40
+    lc.bkg = bkg
+    p0 = prepare(lc, [0.75])
+    p1 = prepare(lc, [0.75], bkg_z_max=5.0, bkg_pad_d=0.1)
+    assert not ((p1.time > 1005) & (p1.time < 1006)).any()
+    assert len(p0.time) - len(p1.time) > 100

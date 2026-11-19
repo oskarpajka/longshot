@@ -165,3 +165,25 @@ that says why and confirms it was not motivated by search results.
   ~20 min guideline. It was run in the cloud because the approved plan (section 8) places
   Phase 1 injection-recovery on the calibration subsample in the cloud, the light curves were
   already cached there, and memory use is small. Recorded here as a deviation.
+
+## D018 2026-11-19: Phase 1 attempt 1 failed criterion 4; scattered-light mask added
+- Finding (calib-inverted run 20261119T105806Z): 1252 of 2012 calibration stars have an
+  inverted event with SNR >= 7.1; the largest is SNR 39. A 1e-3 threshold would sit near 39.
+  Criterion 4 cannot pass with that pipeline, so the injection run was stopped at 2500 of
+  20,500 (its results would describe a pipeline that is being changed; it left only an
+  _inprogress folder) and validate was not run.
+- Cause: of the 300 strongest inverted events (one per star), 84% have the SAP background
+  more than 5 robust sigma above its orbit median inside the box, and 88% lie within 1 d of
+  a segment edge. They are scattered-light ramps, mostly in 200 s sectors, that QLP quality
+  flags do not mark. Plots were checked by eye.
+- Fix: drop cadences whose SAP_BKG is more than bkg_z_max robust sigma above the orbit median,
+  widened by bkg_pad_d on each side (lc/prep.py scattered_light_mask). Background only, so
+  a real transit (a flux change) cannot trigger it.
+- How the values are chosen (rule written before the comparison was run): a separate
+  development sample of 500 targets (seed 20261121, outside the calibration draw, inverted
+  flux only, excluded from candidate claims) is searched with each variant of
+  bkg_z_max in {off, 3, 5, 10} and bkg_pad_d in {0, 0.25, 0.5} d. Metric: fraction of dev stars
+  with any inverted event at SNR >= 10. Choose the variant with the lowest metric; among
+  variants within 0.01 (absolute) of the lowest, choose the one that keeps the most data.
+- Then every Phase 1 run (calib-normal, calib-inverted, inject, validate) is redone from
+  scratch with the new settings. Pass criteria are unchanged.

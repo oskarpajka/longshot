@@ -57,6 +57,38 @@ def trim_segment_edges(time: np.ndarray, gap_d: float, trim_d: float) -> np.ndar
     return keep
 
 
+def scattered_light_mask(
+    time: np.ndarray, bkg: np.ndarray | None, orbit: np.ndarray, z_max: float | None,
+    pad_d: float = 0.0,
+) -> np.ndarray:
+    """True where the cadence is kept. Drops cadences whose SAP background is more than z_max
+    robust sigma above its orbit median, widened by pad_d on each side (D018). Scattered light
+    raises the background and leaves ramps in SAP flux that QLP quality flags often miss.
+    """
+    keep = np.ones(time.size, dtype=bool)
+    if z_max is None or bkg is None:
+        return keep
+    bad = np.zeros(time.size, dtype=bool)
+    for o in np.unique(orbit):
+        sel = (orbit == o) & np.isfinite(bkg) & np.isfinite(time)
+        if sel.sum() < MIN_POINTS_TO_DETREND:
+            continue
+        b = bkg[sel]
+        s = robust_std(b)
+        if not np.isfinite(s) or s <= 0:
+            continue
+        idx = np.flatnonzero(sel)
+        bad[idx[(b - np.median(b)) / s > z_max]] = True
+    if pad_d > 0 and bad.any():
+        tb = np.sort(time[bad & np.isfinite(time)])
+        if tb.size:
+            j = np.searchsorted(tb, time)
+            left = np.abs(time - tb[np.clip(j - 1, 0, tb.size - 1)])
+            right = np.abs(tb[np.clip(j, 0, tb.size - 1)] - time)
+            bad |= np.minimum(left, right) <= pad_d
+    return ~bad
+
+
 def prepare(
     lc: LightCurve,
     windows_d: list[float],
@@ -66,6 +98,8 @@ def prepare(
     flare_clip_sigma: float = 5.0,
     flux: np.ndarray | None = None,
     invert: bool = False,
+    bkg_z_max: float | None = None,
+    bkg_pad_d: float = 0.0,
 ) -> Prepared:
     """Mask, normalize per orbit, clip upward outliers (flares), detrend with biweight.
 
@@ -75,6 +109,7 @@ def prepare(
     """
     raw = lc.flux if flux is None else flux
     m = good_mask(lc, quality_bitmask) & np.isfinite(raw) & (raw > 0)
+    m &= scattered_light_mask(lc.time, lc.bkg, lc.orbit, bkg_z_max, bkg_pad_d)
     t, f, orb = lc.time[m], raw[m].astype(float), lc.orbit[m]
     order = np.argsort(t)
     t, f, orb = t[order], f[order], orb[order]

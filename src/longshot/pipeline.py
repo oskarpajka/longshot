@@ -30,6 +30,8 @@ class SearchSettings:
     max_events: int
     min_points: int
     min_coverage: float
+    bkg_z_max: float | None = None  # scattered-light mask (D018); None = off
+    bkg_pad_d: float = 0.0
 
     @classmethod
     def from_config(cls, c: dict[str, Any]) -> SearchSettings:
@@ -46,6 +48,8 @@ class SearchSettings:
             max_events=int(c["max_events_per_sector"]),
             min_points=int(c["min_points"]),
             min_coverage=float(c["min_coverage"]),
+            bkg_z_max=None if c.get("bkg_z_max") is None else float(c["bkg_z_max"]),
+            bkg_pad_d=float(c.get("bkg_pad_d", 0.0)),
         )
 
     def window_for(self, duration_h: float) -> float:
@@ -78,7 +82,7 @@ def search_lightcurve(
 ) -> tuple[list[dict], dict]:
     prep = prepare(
         lc, s.window_list, s.quality_bitmask, s.gap_d, s.edge_trim_d, s.flare_clip_sigma,
-        flux=flux_override, invert=invert,
+        flux=flux_override, invert=invert, bkg_z_max=s.bkg_z_max, bkg_pad_d=s.bkg_pad_d,
     )
     cad_d = lc.cadence_s / 86400.0
     info = {
