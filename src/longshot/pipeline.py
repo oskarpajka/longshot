@@ -111,16 +111,24 @@ def search_star(
     cache: Path = Path("data/qlp"),
     invert: bool = False,
     flux_hook: Callable[[qlp.LightCurve], np.ndarray] | None = None,
+    keep_files: bool = True,
 ) -> tuple[list[dict], list[dict]]:
+    """Search every listed sector of one star. With keep_files=False each light curve is
+    deleted from the cache after it has been searched (saves disk on the full sample; files
+    are always re-downloadable)."""
     all_events, infos = [], []
     for sec in sectors:
         path = qlp.fetch_lightcurve(tic, sec, cache)
         if path is None:
             infos.append({"tic": tic, "sector": sec, "missing": True})
             continue
-        lc = qlp.read_lightcurve(path)
-        flux = flux_hook(lc) if flux_hook else None
-        ev, info = search_lightcurve(lc, s, invert=invert, flux_override=flux)
+        try:
+            lc = qlp.read_lightcurve(path)
+            flux = flux_hook(lc) if flux_hook else None
+            ev, info = search_lightcurve(lc, s, invert=invert, flux_override=flux)
+        finally:
+            if not keep_files:
+                Path(path).unlink(missing_ok=True)
         all_events.extend(ev)
         infos.append(info)
     return all_events, infos

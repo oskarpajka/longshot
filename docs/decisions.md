@@ -143,3 +143,25 @@ that says why and confirms it was not motivated by search results.
   - duration ratio <= 1.5;
   - aliases tested down to P = 10 d;
   - an alias is rejected when a predicted transit has >= 50% good coverage and no event (SNR >= threshold) lies within one duration.
+
+## D016 2026-11-19: Production search design (written before any production result)
+- Stars: every target of the targets run that has QLP data (availability run), minus the
+  2000-star calibration draw of D014. Input runs are pinned by id, not "latest", so the
+  exclusion is exactly reproducible. Result: 98,145 stars (100,145 targets with QLP data minus
+  2000; test_production.py checks this). The 7 validation stars added to the availability
+  run as extra_tics are not targets.
+- Settings: identical to the calibration runs (configs/search_common.yaml). No change.
+- Disk: each light curve is deleted after it is searched (full cache would be about 450 GB,
+  from 8.9 GB per 2012 calibration stars). Candidates are re-downloaded for vetting.
+- Resumable: finished 500-star chunks are saved under data/checkpoints/. A resumed run must
+  have the same config and the same git commit, so it equals an uninterrupted run (tested).
+- Where: Oskar's PC (download-bound, roughly 12-24 h), per the 20-minute rule.
+- Gzip outputs are written with mtime 0 so reruns give identical checksums. The coverage
+  files of the two calibration searches were written before this fix and differ only in the
+  gzip header timestamp; compare them by decompressed content.
+
+## D017 2026-11-19: Phase 1 injection run executed in the cloud
+- The 20,500-injection run takes about 55 min on 4 cloud cores (1.3 GB RAM), above the
+  ~20 min guideline. It was run in the cloud because the approved plan (section 8) places
+  Phase 1 injection-recovery on the calibration subsample in the cloud, the light curves were
+  already cached there, and memory use is small. Recorded here as a deviation.

@@ -93,9 +93,33 @@ def load_targets_file(path: str) -> list[dict]:
     return yaml.safe_load(Path(path).read_text())["targets"]
 
 
-def select_stars(cfg: dict[str, Any], man: RunManifest):
-    """Return {tic: [sectors]} for the configured star selection."""
+def _target_pool(targets_ref: str, av, man: RunManifest):
+    """Sorted TIC ids that are in the targets run and have QLP data (availability)."""
     import numpy as np
+    import pandas as pd
+
+    tdir = resolve_run(targets_ref, "targets")
+    man.add_data_version("targets_run", tdir.name)
+    pool = pd.read_csv(tdir / "targets.csv.gz", usecols=["ID"])["ID"].astype("int64")
+    return np.sort(pool[pool.isin(av["tic"])].to_numpy())
+
+
+def _draw_sample(smp: dict[str, Any], av, man: RunManifest) -> set[int]:
+    """The random calibration draw (D014). Same inputs give the same stars."""
+    import numpy as np
+
+    pool = _target_pool(smp["targets_run"], av, man)
+    rng = np.random.default_rng(int(smp["seed"]))
+    return set(rng.choice(pool, size=int(smp["n"]), replace=False).tolist())
+
+
+def select_stars(cfg: dict[str, Any], man: RunManifest):
+    """Return {tic: [sectors]} for the configured star selection.
+
+    stars.all_targets_run: every target with QLP data (production search).
+    stars.sample: a random draw (calibration). stars.exclude_sample: remove that same draw.
+    stars.include_tics / include_targets_file: add named stars.
+    """
     import pandas as pd
 
     adir = resolve_run(cfg["availability_run"], "availability")
@@ -103,29 +127,29 @@ def select_stars(cfg: dict[str, Any], man: RunManifest):
     av = pd.read_csv(adir / "availability.csv.gz")
     sel = cfg["stars"]
     chosen: set[int] = set()
+    if "all_targets_run" in sel:
+        chosen |= {int(t) for t in _target_pool(sel["all_targets_run"], av, man)}
     if "sample" in sel:
-        smp = sel["sample"]
-        tdir = resolve_run(smp["targets_run"], "targets")
-        man.add_data_version("targets_run", tdir.name)
-        pool = pd.read_csv(tdir / "targets.csv.gz", usecols=["ID"])["ID"].astype("int64")
-        pool = np.sort(pool[pool.isin(av["tic"])].to_numpy())
-        rng = np.random.default_rng(int(smp["seed"]))
-        chosen |= set(rng.choice(pool, size=int(smp["n"]), replace=False).tolist())
+        chosen |= _draw_sample(sel["sample"], av, man)
     chosen |= {int(t) for t in sel.get("include_tics", [])}
     if "include_targets_file" in sel:
         chosen |= {int(t["tic"]) for t in load_targets_file(sel["include_targets_file"])}
+    if "exclude_sample" in sel:
+        excl = _draw_sample(sel["exclude_sample"], av, man)
+        man.set_count("stars_excluded_sample", len(chosen & excl))
+        chosen -= excl
     sec_max = int(cfg.get("sector_max", 999))
     av = av[av["tic"].isin(chosen) & (av["sector"] <= sec_max)]
     return {int(t): sorted(g["sector"].tolist()) for t, g in av.groupby("tic")}
 
 
 def _search_worker(args):
-    tic, sectors, settings, invert = args
+    tic, sectors, settings, invert, keep_files = args
     from longshot.pipeline import SearchSettings, search_star
 
     s = SearchSettings.from_config(settings)
     try:
-        ev, info = search_star(tic, sectors, s, invert=invert)
+        ev, info = search_star(tic, sectors, s, invert=invert, keep_files=keep_files)
         return tic, ev, info, None
     except Exception as exc:  # noqa: BLE001  (recorded per star, never silently dropped)
         return tic, [], [], repr(exc)
@@ -140,10 +164,69 @@ def write_table(man: RunManifest, rows: list[dict], name: str, columns=None) -> 
     man.add_output(out)
 
 
+def _checkpoint_dir(cfg: dict[str, Any], man: RunManifest) -> Path | None:
+    """Resumable runs: finished chunks are kept under data/checkpoints/<run_name>-<hash>/.
+
+    A checkpoint is reused only by the same config and the same git commit, so a resumed run
+    is identical to an uninterrupted one.
+    """
+    import json
+
+    from longshot.manifest import utc_now
+
+    if not cfg.get("checkpoint", False):
+        return None
+    commit = man.data["git"].get("commit")
+    if commit is None or man.data["git"].get("dirty"):
+        raise RuntimeError("checkpointed runs need a clean git checkout")
+    safe = "".join(c if c.isalnum() or c in "-_" else "-" for c in cfg["run_name"])
+    d = Path(cfg.get("checkpoint_root", "data/checkpoints")) / f"{safe}-{man.data['config_hash'][:12]}"
+    d.mkdir(parents=True, exist_ok=True)
+    meta = d / "meta.json"
+    if meta.exists():
+        old = json.loads(meta.read_text(encoding="utf-8"))
+        if old.get("git_commit") != commit:
+            raise RuntimeError(
+                f"checkpoint {d} was made with commit {old.get('git_commit')}, not {commit}. "
+                "Delete that folder to start over, or check out the old commit.")
+    else:
+        meta.write_text(json.dumps({"git_commit": commit, "config_hash": man.data["config_hash"],
+                                    "created_utc": utc_now()}, indent=2), encoding="utf-8")
+    man.add_data_version("checkpoint_dir", d.as_posix())
+    return d
+
+
+def _save_part(path: Path, tics: list[int], results: list) -> None:
+    import gzip
+    import os
+    import pickle
+
+    tmp = path.with_suffix(".tmp")
+    with gzip.open(tmp, "wb") as fh:
+        pickle.dump({"tics": tics, "results": results}, fh, protocol=4)
+    os.replace(tmp, path)
+
+
+def _load_part(path: Path, tics: list[int]) -> list:
+    import gzip
+    import pickle
+
+    with gzip.open(path, "rb") as fh:
+        data = pickle.load(fh)  # our own checkpoint files, never downloaded ones
+    if data["tics"] != tics:
+        raise RuntimeError(f"checkpoint {path} does not match this star list")
+    return data["results"]
+
+
 @stage("search")
 def search_stage(cfg: dict[str, Any], man: RunManifest) -> str:
-    """Single-event search over a star selection (normal or inverted flux)."""
+    """Single-event search over a star selection (normal or inverted flux).
+
+    Options for the full sample: keep_lightcurves (default true; false deletes each light curve
+    after use), checkpoint (default false; true makes the run resumable), chunk_stars.
+    """
     import gzip
+    import io
     import json
     from concurrent.futures import ProcessPoolExecutor
 
@@ -151,6 +234,7 @@ def search_stage(cfg: dict[str, Any], man: RunManifest) -> str:
     invert = cfg["mode"] == "inverted"
     if cfg["mode"] not in ("normal", "inverted"):
         raise ValueError("mode must be normal or inverted")
+    keep_files = bool(cfg.get("keep_lightcurves", True))
     stars = select_stars(cfg, man)
     man.set_count("stars", len(stars))
     man.set_count("star_sectors", sum(len(v) for v in stars.values()))
@@ -158,29 +242,54 @@ def search_stage(cfg: dict[str, Any], man: RunManifest) -> str:
                 for t, v in sorted(stars.items())]
     write_table(man, pd_stars, "stars.csv.gz")
 
+    ckdir = _checkpoint_dir(cfg, man)
+    chunk = int(cfg.get("chunk_stars", 500))
+    workers = int(cfg.get("workers", 4))
     events, infos, errors = [], [], []
-    jobs = [(t, v, settings, invert) for t, v in sorted(stars.items())]
+    jobs = [(t, v, settings, invert, keep_files) for t, v in sorted(stars.items())]
     cov_path = man.run_dir / "coverage.jsonl.gz"
-    with ProcessPoolExecutor(max_workers=int(cfg.get("workers", 4))) as ex, \
-            gzip.open(cov_path, "wt", encoding="utf-8") as cov_fh:
-        for i, (tic, ev, info, err) in enumerate(ex.map(_search_worker, jobs, chunksize=4)):
-            events.extend(ev)
-            for row in info:
-                cov = row.pop("coverage", None)
-                if cov is not None:
-                    cov_fh.write(json.dumps({"tic": tic, "sector": row["sector"],
-                                             "intervals": cov}) + "\n")
-                infos.append(row)
-            if err:
-                errors.append({"tic": tic, "error": err})
-            if (i + 1) % 200 == 0:
-                print(f"  {i + 1}/{len(jobs)} stars", flush=True)
+    n_done = n_resumed = 0
+    ex = ProcessPoolExecutor(max_workers=workers) if workers > 1 else None
+    try:
+        # mtime=0 so identical runs give byte-identical files (checksums in the manifest)
+        with gzip.GzipFile(cov_path, "wb", mtime=0) as gz, \
+                io.TextIOWrapper(gz, encoding="utf-8") as cov_fh:
+            for ci, start in enumerate(range(0, len(jobs), chunk)):
+                cjobs = jobs[start:start + chunk]
+                tics = [j[0] for j in cjobs]
+                part = ckdir / f"part_{ci:05d}.pkl.gz" if ckdir else None
+                if part is not None and part.exists():
+                    res = _load_part(part, tics)
+                    n_resumed += len(res)
+                else:
+                    mapper = ex.map(_search_worker, cjobs, chunksize=4) if ex else map(
+                        _search_worker, cjobs)
+                    res = list(mapper)
+                    if part is not None:
+                        _save_part(part, tics, res)
+                for tic, ev, info, err in res:
+                    events.extend(ev)
+                    for row in info:
+                        row = dict(row)
+                        cov = row.pop("coverage", None)
+                        if cov is not None:
+                            cov_fh.write(json.dumps({"tic": tic, "sector": row["sector"],
+                                                     "intervals": cov}) + "\n")
+                        infos.append(row)
+                    if err:
+                        errors.append({"tic": tic, "error": err})
+                n_done += len(res)
+                print(f"  {n_done}/{len(jobs)} stars ({n_resumed} from checkpoint)", flush=True)
+    finally:
+        if ex is not None:
+            ex.shutdown(cancel_futures=True)
     man.add_output(cov_path)
     write_table(man, events, "events.csv.gz")
     write_table(man, infos, "sectors.csv.gz")
     write_table(man, errors, "errors.csv.gz", columns=["tic", "error"])
     man.set_count("events", len(events))
     man.set_count("errors", len(errors))
+    man.set_count("stars_from_checkpoint", n_resumed)
     man.set_count("missing_lightcurves", sum(1 for r in infos if r.get("missing")))
     return "ok" if len(errors) <= 0.01 * max(1, len(stars)) else "too_many_errors"
 
