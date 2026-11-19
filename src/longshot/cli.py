@@ -58,7 +58,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("stage", choices=sorted(STAGES))
     parser.add_argument("--config", required=True, type=Path)
     parser.add_argument("--results-root", type=Path, default=Path("results/runs"))
+    parser.add_argument(
+        "--allow-dirty", action="store_true",
+        help="run even if code or configs have uncommitted changes (development only)",
+    )
     args = parser.parse_args(argv)
+
+    from longshot.manifest import git_state
+
+    if not args.allow_dirty and git_state().get("dirty"):
+        parser.error("uncommitted changes in src/configs/tests; commit first or pass --allow-dirty")
 
     cfg = load_config(args.config)
     if cfg["stage"] != args.stage:

@@ -19,6 +19,8 @@ from typing import Any
 
 from longshot.config import config_hash
 
+CODE_PATHS = ("src", "configs", "pyproject.toml", "uv.lock", "tests")
+
 TRACKED_PACKAGES = (
     "longshot",
     "numpy",
@@ -59,7 +61,10 @@ def git_state(repo: Path | None = None) -> dict[str, Any]:
 
     try:
         commit = run("rev-parse", "HEAD")
-        dirty = bool(run("status", "--porcelain", "--untracked-files=no"))
+        # Dirty if any tracked change, or any untracked file in code/config paths: results
+        # must come from committed code (untracked source would not be in the commit).
+        dirty = bool(run("status", "--porcelain", "--untracked-files=all", "--",
+                         *CODE_PATHS))
         branch = run("rev-parse", "--abbrev-ref", "HEAD")
     except (subprocess.CalledProcessError, FileNotFoundError):
         return {"commit": None, "dirty": None, "branch": None}

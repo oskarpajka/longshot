@@ -1,0 +1,13 @@
+# D001: M-dwarf sample, same cuts as Kunimoto+ 2025 (LEO-Vetter), plus mass cut when known.
+stage: targets
+run_name: mdwarf-tic82
+cache_dir: data/tic/mdwarf
+pagesize: 5000
+cuts:
+  teff_min: 2400
+  teff_max: 3900
+  rad_max: 0.6
+  mass_max: 0.6
+  tmag_max: 13.5
+  contratio_max: 0.5
+  drop_duplicates: true
