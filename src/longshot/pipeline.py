@@ -84,7 +84,7 @@ def search_lightcurve(
     info = {
         "tic": lc.tic, "sector": lc.sector, "camera": lc.camera, "ccd": lc.ccd,
         "cadence_s": lc.cadence_s, "version": lc.version, "timing_suspect": lc.timing_suspect,
-        "n_raw": int(len(lc.time)), "n_good": int(len(prep.time)),
+        "n_raw": len(lc.time), "n_good": len(prep.time),
         "sigma": robust_std(prep.detrended[s.window_list[0]] - 1.0) if len(prep.time) else np.nan,
         "coverage": intervals(prep.time, cad_d),
     }

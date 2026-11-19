@@ -76,3 +76,70 @@ that says why and confirms it was not motivated by search results.
   branch is restarted from main for the next step.
 - Why: the cloud session may push only to its designated branch; this keeps "one branch per
   step, one PR per step" while respecting that rule.
+
+## D011 2026-11-19: Search QLP SAP flux with our own detrending
+- What: search QLP SAP_FLUX after our masking and wotan biweight detrending. QLP's detrended
+  flux (KSPSAP_FLUX / DET_FLUX) is kept for vetting only.
+- Why: injection tests must pass through the same processing as the data. We cannot re-run QLP's
+  own detrending on injected light curves, so searching their detrended flux would overstate
+  completeness. A check on TOI-2257 (11 sectors) gave nearly identical scatter for SAP+biweight
+  and QLP detrended flux.
+- Settings (configs/search_common.yaml):
+  - drop every cadence with a nonzero QLP quality flag;
+  - split segments at gaps > 0.5 d and trim 0.1 d from each segment edge;
+  - clip upward outliers > 5 robust sigma (flares);
+  - box durations 0.5-12 h (14 log steps);
+  - biweight window 0.75 d for durations <= 5 h and 1.5 d for durations up to 12 h (about 3x duration);
+  - an event needs >= 3 points and >= 50% of the expected in-transit cadences;
+  - events below SNR 5 are not recorded.
+- Why 12 h: an M dwarf with M = R = 0.6 (in solar units) has a central-transit duration of about 10 h at P = 500 d.
+
+## D012 2026-11-19: Target count correction
+- The targets stage gives 102,254 stars (TIC v8.2, cuts of D001), not the ~170k in the plan.
+  The plan's figure came from LEO-Vetter's sample, which goes to Tmag < 14; ours stops at 13.5.
+  Run: results/runs/*_targets_mdwarf-tic82/.
+
+## D013 2026-11-19: Phase 1 validation set and matching rules (set before any validation run)
+- Set: 13 known transiting planets with P > 18 d, durations <= 12 h. QLP data must exist.
+  - M dwarfs: LHS 1140 b, TOI-2257 b, TOI-1231 b, TOI-904 c, TOI-700 d, TOI-1899 b.
+  - K/G: TOI-1759 b, TOI-4600 b, TOI-4600 c, TOI-5678 b (duo), NGTS-30 b (duo), TOI-2010 b, TOI-199 b.
+- Dropped from the plan's list: TOI-2180 b. Its 24 h transit is outside the 12 h grid and its host is not an M dwarf.
+- Low-SNR controls: TOI-2257 b and TOI-700 d have expected single-transit SNR near or below the threshold. They are kept as honest controls.
+- Disclosure: during development, LHS 1140 and TOI-2257 were used as smoke tests of the search code, before these rules were written.
+- Rules:
+  - A predicted transit counts if >= 50% of its T14 window has good data.
+  - It is detected if an event above the threshold lies within 0.5 x T14 of the predicted time.
+  - Depth passes if the box depth is within 3 x the event's depth error of the literature model's mean depth over the same box window. The model is batman with NASA Exoplanet Archive pscomppars Rp/R*, a/R* and b.
+  - Duration passes if |D_box / T14 - 1| <= 0.3.
+  - A target is recovered if >= 1 of its transits passes all three.
+  - Criterion 1 needs >= 5 recovered targets.
+- Criterion 2: for every pair of detected events that are true transits of the same planet, the true period must be among the surviving aliases.
+
+## D014 2026-11-19: False-alarm calibration details
+- Calibration sample: 2000 stars drawn at random (seed 20261119) from targets with QLP data.
+  These stars are excluded from candidate claims in the production search.
+- Inverted run: the detrended flux is mirrored about 1 after flare clipping. Mirroring before clipping would turn flares into transit-like dips and inflate the false-alarm rate.
+- Threshold: the smallest SNR at which the fraction of calibration stars with any inverted event
+  >= SNR (over all their sectors) is <= 1e-3, with a floor of 7.1. The floor is the
+  conventional Kepler-era detection threshold (Jenkins et al. 2002).
+- Why the floor: with 2000 stars, 1e-3 means at most 2 stars, which is statistically noisy.
+- Known limitation: inversion does not reproduce dip-shaped systematics. The production false-alarm rate will be higher; the vetting triage (common-mode and edge checks) handles those.
+
+## D015 2026-11-19: Injection-recovery design
+- Count and placement: 20,000 injections. Each lands in a random (star, sector) from the calibration stars, one per light curve per run.
+- Injected parameters:
+  - Rp log-uniform 1-15 Earth radii;
+  - P log-uniform 20-500 d;
+  - b uniform 0-0.9;
+  - circular orbit;
+  - quadratic limb darkening (0.25, 0.35);
+  - TIC stellar radius and mass;
+  - t0 uniform over the sector span, so some injections fall in gaps.
+- Injection: multiplied into SAP flux before masking and detrending, with 5x supersampling for 600 s and 1800 s cadences.
+- Recovered: an event above the threshold within 0.5 x T14 of the injected time.
+- Criterion 3: >= 80% recovered among injections with expected SNR >= 10 and >= 80% good-data coverage of T14. Expected SNR is the mean model depth over good in-transit cadences divided by (sigma / sqrt(n)).
+- Linking (criterion 2 and production):
+  - depths consistent within 3 sigma;
+  - duration ratio <= 1.5;
+  - aliases tested down to P = 10 d;
+  - an alias is rejected when a predicted transit has >= 50% good coverage and no event (SNR >= threshold) lies within one duration.
