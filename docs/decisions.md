@@ -235,3 +235,7 @@ that says why and confirms it was not motivated by search results.
   combinations taken from the injection draw (D015), queried with this exact rule. If more
   than 1% are vetoed by chance, the veto is dropped (thresholds not tuned). The measured
   chance rate is reported as a completeness loss.
+- Outcome (run 20261119T114731Z_study_asteroid-veto): 300 random epochs, 2 vetoed (0.67%),
+  within the 1% limit, so the veto is ADOPTED (asteroid_veto: true in the validate config).
+  Both chance vetoes were shallow (~0.1%) with an asteroid 6-7 arcsec from the star. The
+  0.7% is reported as a completeness loss alongside the injection results.
