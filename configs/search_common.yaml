@@ -4,6 +4,8 @@ quality_bitmask: null        # null = drop any cadence with a nonzero QLP qualit
 gap_d: 0.5                   # gaps longer than this split segments (detrending, edge trim)
 edge_trim_d: 0.1             # drop first/last 0.1 d of each segment (ramps)
 flare_clip_sigma: 5.0        # drop upward outliers above 5 robust sigma after detrending
+bkg_z_max: 3.0               # scattered-light mask: SAP_BKG > 3 robust sigma above orbit median (D018)
+bkg_pad_d: 0.25              # ... widened by 0.25 d on each side (D018 study 20261119T115540Z)
 durations_h: {min: 0.5, max: 12.0, n: 14}
 windows:                     # biweight window used for each duration range (about 3x duration)
   - {max_duration_h: 5.0, window_d: 0.75}

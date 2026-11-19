@@ -239,3 +239,7 @@ that says why and confirms it was not motivated by search results.
   within the 1% limit, so the veto is ADOPTED (asteroid_veto: true in the validate config).
   Both chance vetoes were shallow (~0.1%) with an asteroid 6-7 arcsec from the star. The
   0.7% is reported as a completeness loss alongside the injection results.
+- Outcome (run 20261119T115540Z_study_bkg-mask, 489 dev stars): stars with an inverted
+  event at SNR >= 10 fall from 41.7% (no mask) to 21.5-22.3% (z = 3, pad 0.25-0.5 d). By
+  the rule: bkg_z_max = 3, bkg_pad_d = 0.25 d (keeps 67.8% of cadences vs 79.8% without the
+  mask). Set in configs/search_common.yaml. The tail is still long (5.5% at SNR >= 15).
