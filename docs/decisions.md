@@ -243,3 +243,21 @@ that says why and confirms it was not motivated by search results.
   event at SNR >= 10 fall from 41.7% (no mask) to 21.5-22.3% (z = 3, pad 0.25-0.5 d). By
   the rule: bkg_z_max = 3, bkg_pad_d = 0.25 d (keeps 67.8% of cadences vs 79.8% without the
   mask). Set in configs/search_common.yaml. The tail is still long (5.5% at SNR >= 15).
+
+## D021 2026-11-19: Two-sided background mask and out-of-transit baseline on both sides
+- Finding (dev run 20261119T123541Z with the D018 mask, plus the D020 asteroid veto): the
+  surviving top inverted events are still scattered-light ramps at segment and orbit edges.
+  In some the background falls while the flux rises (the one-sided mask misses them); in most
+  the box sits at a data edge, where the biweight trend cannot follow a steep ramp. One
+  sector-86 systematic appears at the same time in two different stars.
+- Change, adopted as is (standard practice, values not tuned):
+  - bkg_two_sided: true. |z| > 3 instead of z > 3, same padding.
+  - baseline_min_d: 0.25, baseline_coverage: 0.5. A box is searched only if the
+    max(duration, 0.25 d) before it and after it each have >= 50% of the expected cadences.
+    Real transits that touch a data edge are lost; injection-recovery measures the loss
+    (baseline_ok is recorded per injection).
+- Injection fix found while doing this: the expected SNR and good-data coverage of each
+  injection are now computed on data with the same masks as the search. Before, masked
+  cadences counted as good data.
+- Effect on the dev sample is recorded below; no further tuning on it. Common-mode
+  (same time, many stars) systematics are left to vetting triage (plan section 6).

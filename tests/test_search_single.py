@@ -62,3 +62,19 @@ def test_suppress_keeps_strongest_of_overlapping():
     c = Event(15.0, 0.1, 0.01, 0.001, 8, 8, 10, 1, 1)
     kept = suppress([b, c, a], 10)
     assert [k.snr for k in kept] == [12, 8]
+
+
+def test_baseline_requirement_rejects_boxes_at_edges():
+    import numpy as np
+
+    from longshot.search.single import box_scan
+
+    cad = 600 / 86400
+    t = np.arange(0, 5, cad)
+    r = np.zeros(t.size)
+    _, _, _, _, _, v0, _ = box_scan(t, r, 0.2, cad)
+    _, _, _, _, _, v1, _ = box_scan(t, r, 0.2, cad, baseline_min_d=0.25)
+    t0 = np.arange(t[0], t[-1] + 0.2 / 6, 0.2 / 6)[: len(v1)]
+    assert v0[np.abs(t0 - 0.15) < 0.02].any()  # near the start: valid without the rule
+    assert not v1[t0 < 0.2].any()  # under 50% of the 0.25 d baseline before: invalid
+    assert v1[np.abs(t0 - 2.5) < 0.05].all()  # middle of the data: still valid

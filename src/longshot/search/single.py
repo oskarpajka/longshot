@@ -49,8 +49,15 @@ def box_scan(
     min_points: int = 3,
     min_coverage: float = 0.5,
     sigma: float | None = None,
+    baseline_min_d: float | None = None,
+    baseline_coverage: float = 0.5,
 ):
-    """Scan one duration. Returns (t0_grid, depth, n_in, coverage, snr_white, valid)."""
+    """Scan one duration. Returns (t0_grid, depth, n_in, coverage, snr_white, valid).
+
+    With baseline_min_d set, a box is valid only if both B = max(duration, baseline_min_d)
+    before and B after it have >= baseline_coverage of the expected cadences (D021): an event
+    must have out-of-transit data on both sides, which rejects boxes cut by gaps and edges.
+    """
     ok = np.isfinite(resid) & np.isfinite(time)
     t, r = time[ok], resid[ok]
     order = np.argsort(t)
@@ -70,6 +77,12 @@ def box_scan(
     n_exp = duration_d / cadence_d
     coverage = n_in / n_exp
     valid = (n_in >= min_points) & (coverage >= min_coverage)
+    if baseline_min_d is not None:
+        b = max(duration_d, baseline_min_d)
+        n_need = baseline_coverage * b / cadence_d
+        n_before = lo - np.searchsorted(t, t0 - duration_d / 2 - b, side="left")
+        n_after = np.searchsorted(t, t0 + duration_d / 2 + b, side="left") - hi
+        valid &= (n_before >= n_need) & (n_after >= n_need)
     return t0, depth, n_in, coverage, snr_white, valid, sigma
 
 
@@ -91,6 +104,8 @@ def search(
     min_points: int = 3,
     min_coverage: float = 0.5,
     step_frac: float = 1 / 6,
+    baseline_min_d: float | None = None,
+    baseline_coverage: float = 0.5,
 ) -> list[Event]:
     """Search one sector. flux_by_window maps detrending window -> detrended flux (~1)."""
     cadence_d = cadence_s / 86400.0
@@ -100,7 +115,8 @@ def search(
         f = flux_by_window[window_for_duration(d_h)]
         resid = f - 1.0
         t0, depth, n_in, cov, snr_w, valid, sigma = box_scan(
-            time, resid, dur, cadence_d, step_frac, min_points, min_coverage
+            time, resid, dur, cadence_d, step_frac, min_points, min_coverage,
+            baseline_min_d=baseline_min_d, baseline_coverage=baseline_coverage,
         )
         if valid.sum() < 10:
             continue

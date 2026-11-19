@@ -77,7 +77,8 @@ def run_injection(inj: Injection, s: SearchSettings, seed: int) -> dict:
 
     # Expected SNR on the uninjected, prepared data (white-noise, good cadences only)
     base = prepare(lc, s.window_list, s.quality_bitmask, s.gap_d, s.edge_trim_d,
-                   s.flare_clip_sigma)
+                   s.flare_clip_sigma, bkg_z_max=s.bkg_z_max, bkg_pad_d=s.bkg_pad_d,
+                   bkg_two_sided=s.bkg_two_sided)
     w = s.window_for(min(max(dur * 24, s.durations_h[0]), s.durations_h[-1]))
     resid = base.detrended[w] - 1.0
     ok = np.isfinite(resid)
@@ -90,6 +91,13 @@ def run_injection(inj: Injection, s: SearchSettings, seed: int) -> dict:
     m_in = np.interp(tg[in_tr], lc.time[finite], model[finite]) if n_in else np.array([])
     mean_depth = float(np.mean(1 - m_in)) if n_in else 0.0
     snr_exp = mean_depth / (sigma / np.sqrt(n_in)) if n_in and sigma > 0 else 0.0
+    baseline_ok = True  # D021 diagnostic: out-of-transit data on both sides of the injection
+    if s.baseline_min_d is not None:
+        b = max(dur, s.baseline_min_d)
+        need = s.baseline_coverage * b / cad_d
+        n_before = int(((tg >= inj.t0 - dur / 2 - b) & (tg < inj.t0 - dur / 2)).sum())
+        n_after = int(((tg >= inj.t0 + dur / 2) & (tg < inj.t0 + dur / 2 + b)).sum())
+        baseline_ok = n_before >= need and n_after >= need
 
     events, _ = search_lightcurve(lc, s, flux_override=flux)
     match = [e for e in events if abs(e["t0"] - inj.t0) < 0.5 * max(dur, 1 / 24)]
@@ -98,7 +106,7 @@ def run_injection(inj: Injection, s: SearchSettings, seed: int) -> dict:
         **asdict(inj), "status": "ok", "duration_d": dur, "k": k, "aors": aors,
         "mean_depth": mean_depth, "sigma": sigma, "n_in_good": n_in,
         "coverage_good": n_in / n_exp if n_exp else 0.0, "snr_expected": snr_exp,
-        "cadence_s": lc.cadence_s,
+        "cadence_s": lc.cadence_s, "baseline_ok": baseline_ok,
         "det_snr": best["snr"] if best else np.nan,
         "det_t0": best["t0"] if best else np.nan,
         "det_duration_d": best["duration_d"] if best else np.nan,

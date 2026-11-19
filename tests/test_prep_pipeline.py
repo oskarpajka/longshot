@@ -108,3 +108,14 @@ def test_prepare_applies_scattered_light_mask():
     p1 = prepare(lc, [0.75], bkg_z_max=5.0, bkg_pad_d=0.1)
     assert not ((p1.time > 1005) & (p1.time < 1006)).any()
     assert len(p0.time) - len(p1.time) > 100
+
+
+def test_scattered_light_mask_two_sided():
+    from longshot.lc.prep import scattered_light_mask
+
+    t = np.arange(0, 10, 0.01)
+    bkg = 100 + np.random.default_rng(4).normal(0, 1, t.size)
+    bkg[(t > 6) & (t < 6.5)] -= 50
+    o = np.ones(t.size, int)
+    assert scattered_light_mask(t, bkg, o, 5.0)[(t > 6.1) & (t < 6.4)].all()
+    assert not scattered_light_mask(t, bkg, o, 5.0, two_sided=True)[(t > 6.1) & (t < 6.4)].any()

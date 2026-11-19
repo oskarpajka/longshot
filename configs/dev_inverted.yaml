@@ -2,7 +2,7 @@
 # transit can influence the choice. Drawn from targets outside the calibration draw, and
 # excluded from candidate claims like the calibration sample.
 stage: search
-run_name: dev-inverted-mask
+run_name: dev-inverted-d021
 mode: inverted
 search_settings: configs/search_common.yaml
 availability_run: 20261119T102416Z_availability_mdwarf-qlp

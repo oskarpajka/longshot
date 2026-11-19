@@ -33,6 +33,9 @@ class SearchSettings:
     min_coverage: float
     bkg_z_max: float | None = None  # scattered-light mask (D018); None = off
     bkg_pad_d: float = 0.0
+    bkg_two_sided: bool = False  # D021
+    baseline_min_d: float | None = None  # D021: out-of-transit data needed on both sides
+    baseline_coverage: float = 0.5
     centroid_snr_min: float | None = None  # centroid stats for events at or above this (D019)
 
     @classmethod
@@ -52,6 +55,10 @@ class SearchSettings:
             min_coverage=float(c["min_coverage"]),
             bkg_z_max=None if c.get("bkg_z_max") is None else float(c["bkg_z_max"]),
             bkg_pad_d=float(c.get("bkg_pad_d", 0.0)),
+            bkg_two_sided=bool(c.get("bkg_two_sided", False)),
+            baseline_min_d=(None if c.get("baseline_min_d") is None
+                            else float(c["baseline_min_d"])),
+            baseline_coverage=float(c.get("baseline_coverage", 0.5)),
             centroid_snr_min=(None if c.get("centroid_snr_min") is None
                               else float(c["centroid_snr_min"])),
         )
@@ -98,6 +105,7 @@ def search_lightcurve(
     prep = prepare(
         lc, s.window_list, s.quality_bitmask, s.gap_d, s.edge_trim_d, s.flare_clip_sigma,
         flux=flux_override, invert=invert, bkg_z_max=s.bkg_z_max, bkg_pad_d=s.bkg_pad_d,
+        bkg_two_sided=s.bkg_two_sided,
     )
     cad_d = lc.cadence_s / 86400.0
     info = {
@@ -112,7 +120,8 @@ def search_lightcurve(
     events = search(
         prep.time, prep.detrended, lc.cadence_s, s.durations_h, s.window_for,
         report_snr=s.report_snr, max_events=s.max_events, min_points=s.min_points,
-        min_coverage=s.min_coverage,
+        min_coverage=s.min_coverage, baseline_min_d=s.baseline_min_d,
+        baseline_coverage=s.baseline_coverage,
     )
     cen = _centroids_at(lc, prep.time) if s.centroid_snr_min is not None else None
     rows = []

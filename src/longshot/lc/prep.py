@@ -59,7 +59,7 @@ def trim_segment_edges(time: np.ndarray, gap_d: float, trim_d: float) -> np.ndar
 
 def scattered_light_mask(
     time: np.ndarray, bkg: np.ndarray | None, orbit: np.ndarray, z_max: float | None,
-    pad_d: float = 0.0,
+    pad_d: float = 0.0, two_sided: bool = False,
 ) -> np.ndarray:
     """True where the cadence is kept. Drops cadences whose SAP background is more than z_max
     robust sigma above its orbit median, widened by pad_d on each side (D018). Scattered light
@@ -78,7 +78,8 @@ def scattered_light_mask(
         if not np.isfinite(s) or s <= 0:
             continue
         idx = np.flatnonzero(sel)
-        bad[idx[(b - np.median(b)) / s > z_max]] = True
+        z = (b - np.median(b)) / s
+        bad[idx[(np.abs(z) if two_sided else z) > z_max]] = True
     if pad_d > 0 and bad.any():
         tb = np.sort(time[bad & np.isfinite(time)])
         if tb.size:
@@ -100,6 +101,7 @@ def prepare(
     invert: bool = False,
     bkg_z_max: float | None = None,
     bkg_pad_d: float = 0.0,
+    bkg_two_sided: bool = False,
 ) -> Prepared:
     """Mask, normalize per orbit, clip upward outliers (flares), detrend with biweight.
 
@@ -109,7 +111,7 @@ def prepare(
     """
     raw = lc.flux if flux is None else flux
     m = good_mask(lc, quality_bitmask) & np.isfinite(raw) & (raw > 0)
-    m &= scattered_light_mask(lc.time, lc.bkg, lc.orbit, bkg_z_max, bkg_pad_d)
+    m &= scattered_light_mask(lc.time, lc.bkg, lc.orbit, bkg_z_max, bkg_pad_d, bkg_two_sided)
     t, f, orb = lc.time[m], raw[m].astype(float), lc.orbit[m]
     order = np.argsort(t)
     t, f, orb = t[order], f[order], orb[order]
