@@ -23,7 +23,7 @@ def test_true_period_survives_and_covered_aliases_are_rejected():
     iv = [(90.0, 117.0), (190.0, 217.0), (290.0, 317.0)]
     e1, e2, e3 = ev(100.0, 1), ev(300.0, 3), ev(200.0, 2)
     pairs = link_star(1, [e1, e2, e3], iv, snr_min=7, p_min_d=10)
-    p13 = [p for p in pairs if p.t1 == 100.0 and p.t2 == 300.0][0]
+    p13 = next(p for p in pairs if p.t1 == 100.0 and p.t2 == 300.0)
     assert any(abs(a - 50.0) < 1e-9 for a in p13.aliases_d)
     assert any(abs(a - 100.0) < 1e-9 for a in p13.aliases_d)  # 100 -> 200 also supported
     assert any(abs(a - 200.0) < 1e-9 for a in p13.aliases_d)  # no predicted transit in data

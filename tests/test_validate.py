@@ -3,7 +3,10 @@ import pandas as pd
 import pytest
 
 from longshot.validate import (
-    far_threshold, injection_completeness, match_transit, predicted_transits,
+    far_threshold,
+    injection_completeness,
+    match_transit,
+    predicted_transits,
 )
 
 
