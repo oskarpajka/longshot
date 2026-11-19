@@ -95,12 +95,12 @@ def test_production_selection_excludes_calibration_sample(monkeypatch):
     monkeypatch.chdir(REPO)
     cfg = {"availability_run": "20261119T102416Z_availability_mdwarf-qlp",
            "stars": {"all_targets_run": "20261119T102122Z_targets_mdwarf-tic82",
-                     "exclude_sample": {"n": 2000, "seed": 20261119,
-                                        "targets_run": "20261119T102122Z_targets_mdwarf-tic82"}}}
+                     "exclude_samples": [{"n": 2000, "seed": 20261119,
+                                          "targets_run": "20261119T102122Z_targets_mdwarf-tic82"}]}}
     man = FakeMan()
     prod = stages.select_stars(cfg, man)
     calib_cfg = {"availability_run": cfg["availability_run"],
-                 "stars": {"sample": cfg["stars"]["exclude_sample"]}}
+                 "stars": {"sample": cfg["stars"]["exclude_samples"][0]}}
     calib = stages.select_stars(calib_cfg, FakeMan())
     assert len(calib) == 2000
     assert not set(prod) & set(calib)

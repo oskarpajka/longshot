@@ -117,7 +117,7 @@ def select_stars(cfg: dict[str, Any], man: RunManifest):
     """Return {tic: [sectors]} for the configured star selection.
 
     stars.all_targets_run: every target with QLP data (production search).
-    stars.sample: a random draw (calibration). stars.exclude_sample: remove that same draw.
+    stars.sample: a random draw (calibration). stars.exclude_samples: remove those draws.
     stars.include_tics / include_targets_file: add named stars.
     """
     import pandas as pd
@@ -134,8 +134,10 @@ def select_stars(cfg: dict[str, Any], man: RunManifest):
     chosen |= {int(t) for t in sel.get("include_tics", [])}
     if "include_targets_file" in sel:
         chosen |= {int(t["tic"]) for t in load_targets_file(sel["include_targets_file"])}
-    if "exclude_sample" in sel:
-        excl = _draw_sample(sel["exclude_sample"], av, man)
+    excl: set[int] = set()
+    for smp in sel.get("exclude_samples", []):
+        excl |= _draw_sample(smp, av, man)
+    if excl:
         man.set_count("stars_excluded_sample", len(chosen & excl))
         chosen -= excl
     sec_max = int(cfg.get("sector_max", 999))

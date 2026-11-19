@@ -123,6 +123,7 @@ class LightCurve:
     version: str
     path: str
     meta: dict = field(default_factory=dict)
+    bkg: np.ndarray | None = None  # SAP_BKG, used for the scattered-light mask (D018)
 
     @property
     def timing_suspect(self) -> bool:
@@ -160,4 +161,5 @@ def read_lightcurve(path: Path) -> LightCurve:
             version=version,
             path=str(path),
             meta={k: hd.get(k) for k in ("TESSMAG", "TEFF", "RADIUS", "RA_OBJ", "DEC_OBJ")},
+            bkg=_col(d, "SAP_BKG"),
         )

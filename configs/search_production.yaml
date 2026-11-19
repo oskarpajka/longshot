@@ -1,5 +1,5 @@
 # Phase 2: production search of every M-dwarf target with QLP data, except the calibration
-# draw used for the false-alarm threshold and injections (D014, D016). Runs on Oskar's PC
+# draw (false-alarm threshold, injections) and the development draw (D014, D016, D018). Runs on Oskar's PC
 # (docs/home_pc.md). Input runs are pinned by id so the exclusion is exactly reproducible.
 stage: search
 run_name: production-normal
@@ -12,4 +12,6 @@ checkpoint: true             # resumable: rerun the same command after any inter
 chunk_stars: 500
 stars:
   all_targets_run: 20261119T102122Z_targets_mdwarf-tic82
-  exclude_sample: {n: 2000, seed: 20261119, targets_run: 20261119T102122Z_targets_mdwarf-tic82}
+  exclude_samples:             # calibration draw (D014) and development draw (D018)
+    - {n: 2000, seed: 20261119, targets_run: 20261119T102122Z_targets_mdwarf-tic82}
+    - {n: 500, seed: 20261121, targets_run: 20261119T102122Z_targets_mdwarf-tic82}
